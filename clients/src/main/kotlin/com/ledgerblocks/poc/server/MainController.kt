@@ -19,6 +19,8 @@ import org.springframework.web.bind.annotation.RestController
 
 import javax.servlet.http.HttpServletRequest
 
+import java.util.UUID
+
 val SERVICE_NAMES = listOf("Notary", "Network Map Service")
 
 /**
@@ -89,7 +91,7 @@ class MainController(rpc: NodeRPCConnection) {
     fun createLoan(request: HttpServletRequest): ResponseEntity<String> {
 
 
-        val uuid = request.getParameter("uuid").
+        val uuid = request.getParameter("uuid")
         val loanAmount = request.getParameter("loanAmount").toInt()
         val loanPeriod = request.getParameter("loanPeriod").toInt()
         val loanPurpose = request.getParameter("loanPurpose")
@@ -115,7 +117,7 @@ class MainController(rpc: NodeRPCConnection) {
         }
         return try {
 
-            val accountId=proxy.startTrackedFlow(::LoanStateFlow, uuid,loanAmount,loanPeriod,loanPurpose,interestRate,emi).returnValue.get()
+            val accountId=proxy.startTrackedFlow(::LoanStateFlow, UUID.fromString(uuid),loanAmount,loanPeriod,loanPurpose,interestRate,emi).returnValue.get()
             ResponseEntity.status(HttpStatus.CREATED).body("UUID is ${accountId} \n")
 
         } catch (ex: Throwable) {
