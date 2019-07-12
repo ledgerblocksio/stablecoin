@@ -74,7 +74,7 @@ class MainController(rpc: NodeRPCConnection) {
         return try {
 
             val accountId=proxy.startTrackedFlow(::IdentityStateFlow, identityname,imei,type).returnValue.get()
-            ResponseEntity.status(HttpStatus.CREATED).body("UUID is ${accountId} \n")
+            ResponseEntity.status(HttpStatus.CREATED).body("UUID:${accountId} \n")
 
         } catch (ex: Throwable) {
             logger.error(ex.message, ex)
@@ -118,7 +118,7 @@ class MainController(rpc: NodeRPCConnection) {
         return try {
 
             val accountId=proxy.startTrackedFlow(::LoanStateFlow, UUID.fromString(uuid),loanAmount,loanPeriod,loanPurpose,interestRate,emi).returnValue.get()
-            ResponseEntity.status(HttpStatus.CREATED).body("UUID is ${accountId} \n")
+            ResponseEntity.status(HttpStatus.CREATED).body("decision:${loan} \n")
 
         } catch (ex: Throwable) {
             logger.error(ex.message, ex)
