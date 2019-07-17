@@ -21,6 +21,7 @@ class LoanContract: Contract {
         val setOfSigners = commands.signers.toSet()
         when (commands.value) {
             is Commands.Loan -> verifyLoan(tx, setOfSigners)
+            is Commands.Purchase -> verifyPurchase(tx, setOfSigners)
         }
     }
 
@@ -30,7 +31,15 @@ class LoanContract: Contract {
         }
     }
 
+    private fun verifyPurchase(tx: LedgerTransaction, setOfSigners: Set<PublicKey>) {
+        requireThat {
+            "There are single inputs" using (tx.inputs.size==1)
+           // "There is a single output" using (tx.outputs.size == 1)
+        }
+    }
+
     interface Commands: CommandData {
         class Loan: Commands
+        class Purchase: Commands
     }
 }
