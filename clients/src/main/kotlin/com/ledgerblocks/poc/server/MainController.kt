@@ -61,12 +61,12 @@ class MainController(rpc: NodeRPCConnection) {
      */
     @GetMapping(value = ["identity"], produces = [MediaType.APPLICATION_JSON_VALUE])
     fun createIdentity(request: HttpServletRequest): ResponseEntity<Any?> {
-        val name = request.getParameter("identityname")
+        val name = request.getParameter("name")
         val imei = request.getParameter("imei")
         val type = request.getParameter("type")
         //  val otherParty = request.getParameter("otherParty")
         if (name == null) {
-            return ResponseEntity.badRequest().body("Query parameter 'Identityname' must not be null.\n")
+            return ResponseEntity.badRequest().body("Query parameter 'name' must not be null.\n")
         }
         if (imei == null) {
             return ResponseEntity.badRequest().body("Query parameter 'imei' must not be null.\n")
@@ -78,7 +78,7 @@ class MainController(rpc: NodeRPCConnection) {
         return try {
            
             val accountId = proxy.startTrackedFlow(::IdentityStateFlow, name, imei, type).returnValue.get()
-            ResponseEntity.status(HttpStatus.CREATED).body("UUID : ${accountId} \n")
+            ResponseEntity.status(HttpStatus.CREATED).body("UUID:${accountId}")
         } catch (ex: Throwable) {
             logger.error(ex.message, ex)
             ResponseEntity.badRequest().body(ex.message!!)
@@ -121,7 +121,7 @@ class MainController(rpc: NodeRPCConnection) {
         }
         return try {
             val loan = proxy.startTrackedFlow(::LoanStateFlow, uuid1, loanAmount, loanPeriod, loanPurpose, interestRate, emi).returnValue.get()
-            ResponseEntity.status(HttpStatus.CREATED).body("decision :${loan} \n")
+            ResponseEntity.status(HttpStatus.CREATED).body("decision:${loan}")
 
         } catch (ex: Throwable) {
             logger.error(ex.message, ex)
@@ -157,7 +157,7 @@ class MainController(rpc: NodeRPCConnection) {
         return try {
             val purchase = proxy.startTrackedFlow(::GoodsPurchaseFlow, bUuid1, mUuid1, purchaseAmt, goodsDesc).returnValue.get()
           
-            ResponseEntity.status(HttpStatus.CREATED).body("${purchase} \n")
+            ResponseEntity.status(HttpStatus.CREATED).body("${purchase}")
             
         } catch (ex: Throwable) {
             logger.error(ex.message, ex)
