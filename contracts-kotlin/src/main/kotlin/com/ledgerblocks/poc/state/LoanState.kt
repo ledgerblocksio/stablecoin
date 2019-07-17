@@ -17,7 +17,6 @@ data class LoanState(
         val loanPurpose: String,
         val loanDecision: String,
         val interestRate: Int,
-        //val repayPeriod: Int,
         val emi: Int,
         val host: Party,
         override val linearId: UniqueIdentifier = UniqueIdentifier()
