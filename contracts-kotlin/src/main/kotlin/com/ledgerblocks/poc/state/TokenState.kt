@@ -11,7 +11,7 @@ import java.security.PublicKey
 @BelongsToContract(TokenContract::class)
 data class TokenState(
         val amount: Int,
-        //val accountId: UUID,
+        val accountId: UUID,
         val owningKey: PublicKey? = null,
         override val owner: AbstractParty,
 
