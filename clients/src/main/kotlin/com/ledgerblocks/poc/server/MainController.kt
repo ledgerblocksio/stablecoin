@@ -78,7 +78,7 @@ class MainController(rpc: NodeRPCConnection) {
         return try {
            
             val accountId = proxy.startTrackedFlow(::IdentityStateFlow, name, imei, type).returnValue.get()
-            ResponseEntity.status(HttpStatus.CREATED).body("UUID:${accountId}")
+            ResponseEntity.status(HttpStatus.CREATED).body("uuid:${accountId}")
         } catch (ex: Throwable) {
             logger.error(ex.message, ex)
             ResponseEntity.badRequest().body(ex.message!!)
