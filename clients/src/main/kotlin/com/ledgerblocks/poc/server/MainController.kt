@@ -1,25 +1,28 @@
 package com.ledgerblocks.poc.server
 
-
+import com.ledgerblocks.poc.dto.Identity
+import com.ledgerblocks.poc.flow.GoodsPurchaseFlow
 import com.ledgerblocks.poc.flow.IdentityStateFlow
 import com.ledgerblocks.poc.flow.LoanStateFlow
 import com.ledgerblocks.poc.state.IdentityState
+import com.ledgerblocks.poc.state.LoanState
+import com.ledgerblocks.poc.state.TokenState
 import net.corda.core.contracts.StateAndRef
+import net.corda.core.identity.CordaX500Name
 
 import net.corda.core.messaging.startTrackedFlow
 import net.corda.core.messaging.vaultQueryBy
+import net.corda.core.utilities.getOrThrow
+
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.*
+import java.net.URI
+import java.util.*
 
 import javax.servlet.http.HttpServletRequest
-
-import java.util.UUID
 
 val SERVICE_NAMES = listOf("Notary", "Network Map Service")
 
@@ -39,30 +42,30 @@ class MainController(rpc: NodeRPCConnection) {
     private val proxy = rpc.proxy
 
 
-
     /**
      * Returns the node's name.
      */
-    @GetMapping(value = [ "me" ], produces = [MediaType.APPLICATION_JSON_VALUE])
+    @GetMapping(value = ["me"], produces = [MediaType.APPLICATION_JSON_VALUE])
     fun whoami() = mapOf("me" to myLegalName)
 
     /**
      * Displays all amounts states that exist in the node's vault.
      */
-    @GetMapping(value = [ "amounts" ], produces = [MediaType.APPLICATION_JSON_VALUE])
-    fun getAmounts() : ResponseEntity<List<StateAndRef<IdentityState>>> {
+    @GetMapping(value = ["amounts"], produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun getAmounts(): ResponseEntity<List<StateAndRef<IdentityState>>> {
         return ResponseEntity.ok(proxy.vaultQueryBy<IdentityState>().states)
     }
 
     /**
-     * createidentity
+     * createIdentity
      */
-    @PostMapping(value = "identity")
-    fun createidentity(request: HttpServletRequest): ResponseEntity<String> {
-        val identityname = request.getParameter("identityname")
+    @GetMapping(value = ["identity"], produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun createIdentity(request: HttpServletRequest): ResponseEntity<Any?> {
+        val name = request.getParameter("identityname")
         val imei = request.getParameter("imei")
         val type = request.getParameter("type")
-        if(identityname == null){
+        //  val otherParty = request.getParameter("otherParty")
+        if (name == null) {
             return ResponseEntity.badRequest().body("Query parameter 'Identityname' must not be null.\n")
         }
         if (imei == null) {
@@ -71,11 +74,11 @@ class MainController(rpc: NodeRPCConnection) {
         if (type == null) {
             return ResponseEntity.badRequest().body("Query parameter 'type' must not be null.\n")
         }
+       
         return try {
-
-            val accountId=proxy.startTrackedFlow(::IdentityStateFlow, identityname,imei,type).returnValue.get()
-            ResponseEntity.status(HttpStatus.CREATED).body("uuid:${accountId} \n")
-
+           
+            val accountId = proxy.startTrackedFlow(::IdentityStateFlow, name, imei, type).returnValue.get()
+            ResponseEntity.status(HttpStatus.CREATED).body("UUID : ${accountId} \n")
         } catch (ex: Throwable) {
             logger.error(ex.message, ex)
             ResponseEntity.badRequest().body(ex.message!!)
@@ -83,21 +86,22 @@ class MainController(rpc: NodeRPCConnection) {
     }
 
 
-
     /**
      * createLoan
      */
-    @PostMapping(value = "loan")
+
+    @PostMapping(value = ["loan"], produces = [MediaType.APPLICATION_JSON_VALUE])
     fun createLoan(request: HttpServletRequest): ResponseEntity<String> {
 
 
         val uuid = request.getParameter("uuid")
+        val uuid1 = UUID.fromString(uuid)
         val loanAmount = request.getParameter("loanAmount").toInt()
         val loanPeriod = request.getParameter("loanPeriod").toInt()
         val loanPurpose = request.getParameter("loanPurpose")
         val interestRate = request.getParameter("interestRate").toInt()
         val emi = request.getParameter("emi").toInt()
-        if(uuid == null){
+        if (uuid == null) {
             return ResponseEntity.badRequest().body("Query parameter 'uuid' must not be null.\n")
         }
         if (loanAmount <= 0) {
@@ -116,9 +120,8 @@ class MainController(rpc: NodeRPCConnection) {
             return ResponseEntity.badRequest().body("Query parameter ' emi' must be non-negative..\n")
         }
         return try {
-
-            val loan=proxy.startTrackedFlow(::LoanStateFlow, UUID.fromString(uuid),loanAmount,loanPeriod,loanPurpose,interestRate,emi).returnValue.get()
-            ResponseEntity.status(HttpStatus.CREATED).body("decision:${loan} \n")
+            val loan = proxy.startTrackedFlow(::LoanStateFlow, uuid1, loanAmount, loanPeriod, loanPurpose, interestRate, emi).returnValue.get()
+            ResponseEntity.status(HttpStatus.CREATED).body("decision :${loan} \n")
 
         } catch (ex: Throwable) {
             logger.error(ex.message, ex)
@@ -126,4 +129,41 @@ class MainController(rpc: NodeRPCConnection) {
         }
     }
 
+
+    /**
+     * createPurchase
+     */
+
+    @PostMapping(value = ["purchase"], produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun createPurchase(request: HttpServletRequest): ResponseEntity<String> {
+        val bUuid = request.getParameter("bUuid")
+        val bUuid1 = UUID.fromString(bUuid)
+        val mUuid = request.getParameter("mUuid")
+        val mUuid1 = UUID.fromString(mUuid)
+        val purchaseAmt = request.getParameter("purchaseAmt").toInt()
+        val goodsDesc = request.getParameter("goodsDesc")
+        if (bUuid == null) {
+            return ResponseEntity.badRequest().body("Query parameter 'bUuid' must not be null.\n")
+        }
+        if (mUuid == null) {
+            return ResponseEntity.badRequest().body("Query parameter 'mUuid' must not be null.\n")
+        }
+        if (purchaseAmt <= 0) {
+            return ResponseEntity.badRequest().body("Query parameter ' purchaseAmt' must be non-negative..\n")
+        }
+        if (goodsDesc == null) {
+            return ResponseEntity.badRequest().body("Query parameter 'goodsDesc' must not be null.\n")
+        }
+        return try {
+            val purchase = proxy.startTrackedFlow(::GoodsPurchaseFlow, bUuid1, mUuid1, purchaseAmt, goodsDesc).returnValue.get()
+          
+            ResponseEntity.status(HttpStatus.CREATED).body("${purchase} \n")
+            
+        } catch (ex: Throwable) {
+            logger.error(ex.message, ex)
+            ResponseEntity.badRequest().body(ex.message!!)
+        }
+    }
 }
+
+
