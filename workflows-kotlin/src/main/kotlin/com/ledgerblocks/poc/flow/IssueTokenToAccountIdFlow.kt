@@ -27,7 +27,7 @@ class IssueTokenToAccountIdFlow(private val uuid: UUID,private val amount: Int):
 
         val freshkeyToAccount = subFlow(RequestKeyForAccountFlow(accountInfo!!.state.data))
 
-        val tokenState = TokenState(amount,freshkeyToAccount.owningKey, accountInfo!!.state.data.accountHost, listOf(accountInfo!!.state.data.accountHost))
+        val tokenState = TokenState(amount,uuid,freshkeyToAccount.owningKey, accountInfo!!.state.data.accountHost, listOf(accountInfo!!.state.data.accountHost))
         val transactionBuilder = TransactionBuilder(notary)
                 .addOutputState(tokenState, TokenContract.ID)
                 .addCommand(TokenContract.Commands.Issue(),serviceHub.myInfo.legalIdentities.first().owningKey)
