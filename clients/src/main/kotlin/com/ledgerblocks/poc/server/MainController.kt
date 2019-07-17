@@ -1,6 +1,6 @@
 package com.ledgerblocks.poc.server
 
-import com.ledgerblocks.poc.dto.Identity
+//import com.ledgerblocks.poc.dto.Identity
 import com.ledgerblocks.poc.flow.GoodsPurchaseFlow
 import com.ledgerblocks.poc.flow.IdentityStateFlow
 import com.ledgerblocks.poc.flow.LoanStateFlow
@@ -59,7 +59,8 @@ class MainController(rpc: NodeRPCConnection) {
     /**
      * createIdentity
      */
-    @GetMapping(value = ["identity"], produces = [MediaType.APPLICATION_JSON_VALUE])
+    @PostMapping(value = ["identity"], produces = [MediaType.APPLICATION_JSON_VALUE])
+
     fun createIdentity(request: HttpServletRequest): ResponseEntity<Any?> {
         val name = request.getParameter("name")
         val imei = request.getParameter("imei")
@@ -78,7 +79,7 @@ class MainController(rpc: NodeRPCConnection) {
         return try {
            
             val accountId = proxy.startTrackedFlow(::IdentityStateFlow, name, imei, type).returnValue.get()
-            ResponseEntity.status(HttpStatus.CREATED).body("UUID:${accountId}")
+            ResponseEntity.status(HttpStatus.CREATED).body("uuid:${accountId}")
         } catch (ex: Throwable) {
             logger.error(ex.message, ex)
             ResponseEntity.badRequest().body(ex.message!!)
