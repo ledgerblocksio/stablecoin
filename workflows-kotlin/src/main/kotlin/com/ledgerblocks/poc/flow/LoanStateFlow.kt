@@ -40,7 +40,7 @@ class LoanStateFlow(private val uuid: UUID,private val loanAmount: Int,private v
        val accountInfo=accountService.accountInfo(uuid)
        val lAmount = subFlow(IssueTokenToAccountIdFlow(uuid,loanAmount))
        if (count==0)
-           loanDecision="Aprroved "+ lAmount
+           loanDecision="Aprroved"+"loanAmount:"+ lAmount
 
         else
            loanDecision="Rejected"
