@@ -43,7 +43,7 @@ class LoanStateFlow(private val uuid: UUID,private val loanAmount: Int,private v
            loanDecision="Aprroved"+"loanAmount:"+ lAmount
 
         else
-           loanDecision="Rejected"
+           loanDecision="Rejected"+"loanAmount:"+0
 
         val loanState = LoanState(uuid, loanAmount, loanPeriod, loanPurpose,loanDecision,interestRate,emi, accountInfo!!.state.data.accountHost)
         val transactionBuilder = TransactionBuilder(notary)
