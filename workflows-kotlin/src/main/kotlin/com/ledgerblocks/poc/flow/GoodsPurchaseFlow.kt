@@ -13,29 +13,28 @@ import net.corda.core.transactions.TransactionBuilder
 import java.util.*
 @InitiatingFlow
 @StartableByRPC
-class GoodsPurchaseFlow(private val bUuid: UUID, private val mUuid: UUID, private val purchaseAmt: Int, private val goodsDesc: String): FlowLogic<String>(){
+class GoodsPurchaseFlow(private val bUUID: UUID, private val mUUID: UUID, private val purchaseAmount: Int, private val goodsDesc: String): FlowLogic<String>(){
     @Suspendable
     override fun call(): String {
         val notary = serviceHub.networkMapCache.notaryIdentities.first()
-        val bUuidTokenStateinfo=serviceHub.vaultService.queryBy<TokenState>().states.filter {it.state.data.accountId.equals(bUuid)}
-        val borrowerTokenBal= bUuidTokenStateinfo.get(0).state.data.amount
-        val bUuidLoanStateinfo=serviceHub.vaultService.queryBy<LoanState>().states.filter {it.state.data.uuid.equals(bUuid)  }
+        val bUuidTokenStateinfo=serviceHub.vaultService.queryBy<TokenState>().states.filter {it.state.data.accountId.equals(bUUID)}
+        val borrowerTokenBal = bUuidTokenStateinfo.get(bUuidTokenStateinfo.size-1).state.data.amount
+        val bUuidLoanStateinfo=serviceHub.vaultService.queryBy<LoanState>().states.filter {it.state.data.uuid.equals(bUUID)  }
         val accountService = serviceHub.cordaService(KeyManagementBackedAccountService::class.java)
-        val mAccountInfo=accountService.accountInfo(mUuid)
+        val mAccountInfo=accountService.accountInfo(mUUID)
         val bInitialLoanAmount= bUuidLoanStateinfo.get(0).state.data.loanAmount
         val purchase:String
         val resultMoveTokenInfo:StateAndRef<TokenState>
-        if(borrowerTokenBal>=purchaseAmt) {
-            purchase = "Yes"
-            resultMoveTokenInfo=subFlow(MoveTokensBetweenAccounts(bUuid,mUuid,purchaseAmt))
+        if(borrowerTokenBal>=purchaseAmount) {
+            purchase = "yes"
+            resultMoveTokenInfo=subFlow(MoveTokensBetweenAccounts(bUUID,mUUID,purchaseAmount))
         }
         else {
-            purchase = "No"
+            purchase = "no"
             resultMoveTokenInfo=bUuidTokenStateinfo.get(0)
         }
-        //  val accountService = serviceHub.cordaService(KeyManagementBackedAccountService::class.java)
-        val bAccountInfo=accountService.accountInfo(bUuid)
-        val purchaseState=PurchaseState(bUuid,mUuid,purchase, bAccountInfo!!.state.data.accountHost)
+        val bAccountInfo=accountService.accountInfo(bUUID)
+        val purchaseState=PurchaseState(bUUID,mUUID,purchase, bAccountInfo!!.state.data.accountHost)
         val transactionBuilder = TransactionBuilder(notary)
                 .addInputState(resultMoveTokenInfo)
                 .addOutputState(purchaseState)
