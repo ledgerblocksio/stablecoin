@@ -51,8 +51,6 @@ class LoanStateFlow(private val uuid: UUID,private val loanAmount: Int,private v
                 .addCommand(LoanContract.Commands.Loan(),serviceHub.myInfo.legalIdentities.first().owningKey)
         val signedTransaction = serviceHub.signInitialTransaction(transactionBuilder)
         transactionBuilder.verify(serviceHub)
-println("test=$loanDecision")
-
         return subFlow(FinalityFlow(signedTransaction, emptyList())).coreTransaction.outRefsOfType<LoanState>().single().state.data.loanDecision
     }
 
