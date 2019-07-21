@@ -15,19 +15,17 @@ import java.util.*
 
 @StartableByRPC
 @InitiatingFlow
-class MoveTokensBetweenAccounts(private val bUuid: UUID, private val mUuid: UUID,private val purchaseAmt: Int): FlowLogic<StateAndRef<TokenState>>() {
+class MoveTokensBetweenAccounts(private val bUUID: UUID, private val mUUID: UUID,private val purchaseAmount: Int): FlowLogic<StateAndRef<TokenState>>() {
 
     @Suspendable
     override fun call(): StateAndRef<TokenState> {
         val notary = serviceHub.networkMapCache.notaryIdentities.first()
        // subFlow(CombineTokensFlow())
         val accountService = serviceHub.cordaService(KeyManagementBackedAccountService::class.java)
-
-        val bAccountInfo=accountService.accountInfo(bUuid)
-     
+        val bAccountInfo=accountService.accountInfo(bUUID)
         val allAccs=accountService.allAccounts()
         val myAccs=accountService.myAccounts()
-        val mAccountInfo=accountService.accountInfo(mUuid)
+        val mAccountInfo=accountService.accountInfo(mUUID)
         val freshkeyForbAccountInfo= subFlow(RequestKeyForAccountFlow(bAccountInfo!!.state.data))
         val freshkeyFormAccountInfo= subFlow(RequestKeyForAccountFlow(mAccountInfo!!.state.data))
         val owningKeyForbAccount =accountService.accountInfo(freshkeyForbAccountInfo.owningKey)
@@ -36,10 +34,15 @@ class MoveTokensBetweenAccounts(private val bUuid: UUID, private val mUuid: UUID
         val requiredSigners =
                 signingAccounts.map { it.state.data.accountHost.owningKey } + listOfNotNull(
                         freshkeyForbAccountInfo.owningKey, freshkeyFormAccountInfo.owningKey,ourIdentity.owningKey)
-        val inputTokenStateReference = serviceHub.vaultService.queryBy<TokenState>().states.first()
-        val inputTokenState = inputTokenStateReference.state.data
-        val updatedInputTokenState = inputTokenState.copy(participants = listOf(bAccountInfo.state.data.accountHost), amount = inputTokenState.amount - purchaseAmt)
-        val updatedOutputTokenState = inputTokenState.copy(participants = listOf(mAccountInfo.state.data.accountHost), amount = purchaseAmt)
+        val inputTokenStateReference = serviceHub.vaultService.queryBy<TokenState>().states
+        val borrowerToken= inputTokenStateReference.get(inputTokenStateReference.size-1).state.data
+        println("borrowerToken-Amount=${borrowerToken.amount}")
+        inputTokenStateReference.forEach{tokenState:StateAndRef<TokenState> ->
+            val stateAmount = tokenState.state.data.amount
+            println("amount=$stateAmount")
+        }
+        val updatedInputTokenState = borrowerToken.copy(participants = listOf(bAccountInfo.state.data.accountHost), amount = borrowerToken.amount - purchaseAmount)
+        val updatedOutputTokenState = borrowerToken.copy(participants = listOf(mAccountInfo.state.data.accountHost), amount = purchaseAmount)
         val (command, updatedOwnerState) = updatedOutputTokenState.withNewOwner(freshkeyFormAccountInfo)
         val transactionBuilder = TransactionBuilder(notary)
                 .addOutputState(updatedOwnerState, TokenContract.ID)
@@ -53,7 +56,6 @@ class MoveTokensBetweenAccounts(private val bUuid: UUID, private val mUuid: UUID
         val accountSession1 = initiateFlow(bAccountInfo.state.data.accountHost)
         val accountSession = initiateFlow(mAccountInfo.state.data.accountHost)
         val fullySignedTransaction = subFlow(CollectSignaturesFlow(partiallySignedTransaction, listOf(accountSession,accountSession1)))
-
         val sessions = if (!serviceHub.myInfo.isLegalIdentity(mAccountInfo.state.data.accountHost))
             Collections.singletonList(accountSession)
         else
@@ -63,11 +65,10 @@ class MoveTokensBetweenAccounts(private val bUuid: UUID, private val mUuid: UUID
         else
             Collections.emptyList()
 
-        return  subFlow(FinalityFlow(fullySignedTransaction, sessions)).coreTransaction.outRefsOfType(TokenState::class.java).filter {it.state.data.accountId.equals(bUuid)}.get(0)
+        return  subFlow(FinalityFlow(fullySignedTransaction, sessions)).coreTransaction.outRefsOfType(TokenState::class.java).filter {it.state.data.accountId.equals(bUUID)}.get(0)
     }
-
-
 }
+
 @InitiatedBy(MoveTokensBetweenAccounts::class)
 class MoveTokensBetweenAccountsResponderFlow(val otherPartySession: FlowSession): FlowLogic<SignedTransaction>(){
 
