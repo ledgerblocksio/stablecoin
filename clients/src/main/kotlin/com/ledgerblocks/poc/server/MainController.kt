@@ -159,6 +159,32 @@ class MainController(rpc: NodeRPCConnection) {
             ResponseEntity.badRequest().body(ex.message!!)
         }
     }
+
+
+
+    /**
+     * Dashboard
+     */
+
+    @GetMapping(value = ["dashboard"], produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun dashBoardApi(request: HttpServletRequest): ResponseEntity<Any> {
+        val uuid = request.getParameter("uuid")
+        val Uuid1 = UUID.fromString(uuid)
+        val type = request.getParameter("type")
+        if (uuid == null) {
+            return ResponseEntity.badRequest().body("Query parameter 'uuid' must not be null.\n")
+        }
+        if (type == null) {
+            return ResponseEntity.badRequest().body("Query parameter 'type' must not be null.\n")
+        }
+        val mIdentityStateinfo=proxy.vaultQueryBy<IdentityState>().states.filter {it.state.data.uuid.equals(Uuid1)}
+        val bIdentityStateinfo=proxy.vaultQueryBy<IdentityState>().states.filter {it.state.data.uuid.equals(Uuid1)}
+        val bTokenStateinfo=proxy.vaultQueryBy<TokenState>().states.filter {it.state.data.accountId.equals(Uuid1)}
+        val bLoanStateinfo=proxy.vaultQueryBy<LoanState>().states.filter {it.state.data.uuid.equals(Uuid1)}
+        val result=if(type.equals('m')) "mName:${mIdentityStateinfo.get(0).state.data.name}+tokenBalance:${75000}" else  "name:${bIdentityStateinfo.get(bIdentityStateinfo.size-1).state.data.name}+loanAmount:${bLoanStateinfo.get(0).state.data.loanAmount}+avaBlance:${bTokenStateinfo.get(bTokenStateinfo.size-1).state.data.amount}"
+        return ResponseEntity.ok(result)
+    }
+
 }
 
 
