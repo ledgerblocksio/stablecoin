@@ -184,6 +184,40 @@ class MainController(rpc: NodeRPCConnection) {
         val result=if(type.equals('m')) "mName:${mIdentityStateinfo.get(0).state.data.name}+tokenBalance:${75000}" else  "name:${bIdentityStateinfo.get(bIdentityStateinfo.size-1).state.data.name}+loanAmount:${bLoanStateinfo.get(0).state.data.loanAmount}+avaBlance:${bTokenStateinfo.get(bTokenStateinfo.size-1).state.data.amount}"
         return ResponseEntity.ok(result)
     }
+     /**
+     * pay-loan-direct
+     */
+    @PostMapping(value = ["payLoanDirect"], produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun payLoanDirect(request: HttpServletRequest): ResponseEntity<String> {
+        val uuid = request.getParameter("uuid")
+        val uuid1 = UUID.fromString(uuid)
+        val amtToPay = request.getParameter("amtToPay").toInt()
+        val cardNumber = request.getParameter("cardNumber").toInt()
+        val lbuuid = request.getParameter("lbuuid")
+        val lbuuid1 = UUID.fromString(lbuuid)
+        if (uuid == null) {
+            return ResponseEntity.badRequest().body("Query parameter 'uuid' must not be null.\n")
+        }
+        if (lbuuid == null) {
+            return ResponseEntity.badRequest().body("Query parameter 'lbuuid' must not be null.\n")
+        }
+        if (amtToPay <= 0) {
+            return ResponseEntity.badRequest().body("Query parameter ' amtToPay' must be non-negative..\n")
+        }
+        if (cardNumber == null) {
+            return ResponseEntity.badRequest().body("Query parameter 'cardNumber' must not be null.\n")
+        }
+        return try {
+            val payment = proxy.startTrackedFlow(::PayLoanDirectFlow, uuid1, amtToPay, cardNumber, lbuuid1).returnValue.get()
+            val buuidLoanStateinfo=proxy.vaultQueryBy<LoanState>().states.filter { it.state.data.uuid.equals(uuid1)}
+            val bBalLoanAmount= buuidLoanStateinfo.get(buuidLoanStateinfo.size-1).state.data.loanAmount
+            ResponseEntity.status(HttpStatus.CREATED).body("payment:${payment}+balLoanAmt:${bBalLoanAmount}")
+        } catch (ex: Throwable) {
+            logger.error(ex.message, ex)
+            ResponseEntity.badRequest().body(ex.message!!)
+        }
+
+    }
 
 }
 
