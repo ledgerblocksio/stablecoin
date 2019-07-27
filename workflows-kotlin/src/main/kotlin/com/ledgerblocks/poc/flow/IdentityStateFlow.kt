@@ -23,19 +23,29 @@ class IdentityStateFlow(private val name: String, private val imei: String, priv
         val notary = serviceHub.networkMapCache.notaryIdentities.first()
         val  newImei:String
         val  newParty : String
+        val  newParty1 : String
         if(type.equals('m')) {
              newImei=type+imei
             newParty= "O=PartyA,L=London,C=GB"
+            newParty1="O=PartyC,L=Paris,C=FR"
         }
         else if (type.equals('b'))
         {
             newImei=type+imei
             newParty= "O=PartyB,L=New York,C=US"
+            newParty1="O=PartyC,L=Paris,C=FR"
+        }
+        else if(type.equals('o')) {
+            newImei=type+imei
+            newParty= "O=PartyA,L=London,C=GB"
+
+            newParty1= "O=PartyB,L=New York,C=US"
         }
           else
         {
             newImei=imei
            newParty= "O=PartyA,L=London,C=GB"
+            newParty1="O=PartyC,L=Paris,C=FR"
         }
             val id = type+name + newImei
             val accountService = serviceHub.cordaService(KeyManagementBackedAccountService::class.java)
@@ -44,7 +54,11 @@ class IdentityStateFlow(private val name: String, private val imei: String, priv
        val x500Name = CordaX500Name.parse(newParty)
         val party= serviceHub.networkMapCache.getPeerByLegalName(x500Name)!!
 
+        val x500Name1 = CordaX500Name.parse(newParty1)
+        val party1= serviceHub.networkMapCache.getPeerByLegalName(x500Name)!!
+
             accountService.shareAccountInfoWithParty(storedAccountInfo!!.state.data.accountId, party)
+        accountService.shareAccountInfoWithParty(storedAccountInfo!!.state.data.accountId, party1)
         val accounts = accountService.allAccounts()
             val identityState = IdentityState(name, imei, storedAccountInfo!!.state.data.accountId, storedAccountInfo.state.data.accountHost)
             val transactionBuilder = TransactionBuilder(notary)
