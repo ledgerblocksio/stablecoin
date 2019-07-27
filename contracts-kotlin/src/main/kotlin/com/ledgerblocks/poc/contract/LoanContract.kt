@@ -22,6 +22,7 @@ class LoanContract: Contract {
         when (commands.value) {
             is Commands.Loan -> verifyLoan(tx, setOfSigners)
             is Commands.Purchase -> verifyPurchase(tx, setOfSigners)
+            is Commands.Pay -> verifyPay(tx, setOfSigners)
         }
     }
 
@@ -38,8 +39,16 @@ class LoanContract: Contract {
         }
     }
 
+    private fun verifyPay(tx: LedgerTransaction, setOfSigners: Set<PublicKey>) {
+        requireThat {
+            "There are single inputs" using (tx.inputs.size==1)
+            // "There is a single output" using (tx.outputs.size == 1)
+        }
+    }
+
     interface Commands: CommandData {
         class Loan: Commands
         class Purchase: Commands
+        class Pay: Commands
     }
 }
