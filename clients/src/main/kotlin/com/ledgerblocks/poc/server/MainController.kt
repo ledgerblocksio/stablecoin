@@ -2,8 +2,10 @@ package com.ledgerblocks.poc.server
 
 import com.ledgerblocks.poc.flow.GoodsPurchaseFlow
 import com.ledgerblocks.poc.flow.IdentityStateFlow
-import com.ledgerblocks.poc.flow.PayLoanDirectFlow
 import com.ledgerblocks.poc.flow.LoanStateFlow
+import com.ledgerblocks.poc.flow.PayLoanDirectFlow
+
+
 import com.ledgerblocks.poc.state.IdentityState
 import com.ledgerblocks.poc.state.LoanState
 import com.ledgerblocks.poc.state.TokenState
@@ -72,7 +74,7 @@ class MainController(rpc: NodeRPCConnection) {
         }
         return try {
             val accountId = proxy.startTrackedFlow(::IdentityStateFlow, name , mobileToken, imei, type).returnValue.get()
-            ResponseEntity.status(HttpStatus.CREATED).body("uuid:${accountId}+lbUUID:${1c7b645f-4f62-4f7f-80cc-38910439f0e9}")
+            ResponseEntity.status(HttpStatus.CREATED).body("uuid:${accountId}+lbUUID:1c7b645f-4f62-4f7f-80cc-38910439f0e9")
         } catch (ex: Throwable) {
             logger.error(ex.message, ex)
             ResponseEntity.badRequest().body(ex.message!!)
@@ -88,19 +90,21 @@ class MainController(rpc: NodeRPCConnection) {
     fun createLoan(request: HttpServletRequest): ResponseEntity<String> {
         val uuid = request.getParameter("uuid")
         val uuid1 = UUID.fromString(uuid)
-        val lbUUID = request.getParameter("lbUUID")
-        val lbUUID1 = UUID.fromString(lbUUID)
+      //  val lbUUID = request.getParameter("lbUUID")
+       // val lbUUID1 = UUID.fromString(lbUUID)
         val loanAmount = request.getParameter("loanAmount").toInt()
         val loanPeriod = request.getParameter("loanPeriod").toInt()
         val loanPurpose = request.getParameter("loanPurpose")
         val interestRate = request.getParameter("interestRate").toInt()
         val emi = request.getParameter("emi").toInt()
+
+
         if (uuid == null) {
             return ResponseEntity.badRequest().body("Query parameter 'uuid' must not be null.\n")
         }
-        if (lbUUID == null) {
+        /*if (lbUUID == null) {
             return ResponseEntity.badRequest().body("Query parameter 'lbUUID' must not be null.\n")
-        }
+        }*/
         if (loanAmount <= 0) {
             return ResponseEntity.badRequest().body("Query parameter ' loanAmount' must be non-negative..\n")
         }
@@ -117,7 +121,9 @@ class MainController(rpc: NodeRPCConnection) {
             return ResponseEntity.badRequest().body("Query parameter ' emi' must be non-negative..\n")
         }
         return try {
-            val loan = proxy.startTrackedFlow(::LoanStateFlow, uuid1 ,lbUUID1, loanAmount, loanPeriod, interestRate, emi, loanPurpose).returnValue.get()
+            val loan = proxy.startTrackedFlow(::LoanStateFlow, uuid1, loanAmount, loanPeriod, interestRate, emi, loanPurpose).returnValue.get()
+
+
             ResponseEntity.status(HttpStatus.CREATED).body("decision:${loan}")
 
         } catch (ex: Throwable) {
@@ -215,7 +221,7 @@ class MainController(rpc: NodeRPCConnection) {
             return ResponseEntity.badRequest().body("Query parameter 'cardNumber' must not be null.\n")
         }
         return try {
-            val payment = proxy.startTrackedFlow(::PayLoanDirectFlow, uuid1, amtToPay, cardNumber, lbUUID1).returnValue.get()
+            val payment = proxy.startTrackedFlow(::PayLoanDirectFlow, uuid1,lbUUID1, amtToPay, cardNumber).returnValue.get()
             val buuidLoanStateinfo=proxy.vaultQueryBy<LoanState>().states.filter { it.state.data.uuid.equals(uuid1)}
             val bBalLoanAmount= buuidLoanStateinfo.get(buuidLoanStateinfo.size-1).state.data.loanAmount
             ResponseEntity.status(HttpStatus.CREATED).body("payment:${payment}+balLoanAmt:${bBalLoanAmount}")
@@ -227,4 +233,3 @@ class MainController(rpc: NodeRPCConnection) {
     }
 
 }
-
