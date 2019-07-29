@@ -16,7 +16,7 @@ import java.util.*
 
 @InitiatingFlow
 @StartableByRPC
-class IdentityStateFlow(private val name: String, private val imei: String, private val type: String): FlowLogic<UUID>(){
+class IdentityStateFlow(private val name: String, private val mobileToken: String, private val imei: String, private val type: String): FlowLogic<UUID>(){
 
     @Suspendable
     override fun call(): UUID {
@@ -25,7 +25,7 @@ class IdentityStateFlow(private val name: String, private val imei: String, priv
         val  newParty : String
         val  newParty1 : String
         if(type.equals('m')) {
-             newImei=type+imei
+            newImei=type+imei
             newParty= "O=PartyA,L=London,C=GB"
             newParty1="O=PartyC,L=Paris,C=FR"
         }
@@ -41,27 +41,27 @@ class IdentityStateFlow(private val name: String, private val imei: String, priv
 
             newParty1= "O=PartyB,L=New York,C=US"
         }
-          else
+        else
         {
             newImei=imei
-           newParty= "O=PartyA,L=London,C=GB"
+            newParty= "O=PartyA,L=London,C=GB"
             newParty1="O=PartyC,L=Paris,C=FR"
         }
-            val id = type+name + newImei
-            val accountService = serviceHub.cordaService(KeyManagementBackedAccountService::class.java)
-            val newAccountCreation = accountService.createAccount(id)
-            val storedAccountInfo = accountService.accountInfo(id)
-       val x500Name = CordaX500Name.parse(newParty)
+        val id = type+name + newImei
+        val accountService = serviceHub.cordaService(KeyManagementBackedAccountService::class.java)
+        val newAccountCreation = accountService.createAccount(id)
+        val storedAccountInfo = accountService.accountInfo(id)
+        val x500Name = CordaX500Name.parse(newParty)
         val party= serviceHub.networkMapCache.getPeerByLegalName(x500Name)!!
 
         val x500Name1 = CordaX500Name.parse(newParty1)
         val party1= serviceHub.networkMapCache.getPeerByLegalName(x500Name)!!
 
-            accountService.shareAccountInfoWithParty(storedAccountInfo!!.state.data.accountId, party)
+        accountService.shareAccountInfoWithParty(storedAccountInfo!!.state.data.accountId, party)
         accountService.shareAccountInfoWithParty(storedAccountInfo!!.state.data.accountId, party1)
         val accounts = accountService.allAccounts()
-            val identityState = IdentityState(name, imei, storedAccountInfo!!.state.data.accountId, storedAccountInfo.state.data.accountHost)
-            val transactionBuilder = TransactionBuilder(notary)
+        val identityState = IdentityState(name, imei, storedAccountInfo!!.state.data.accountId, storedAccountInfo.state.data.accountHost)
+        val transactionBuilder = TransactionBuilder(notary)
                 .addOutputState(identityState)
                 .addCommand(IdentityContract.OPEN,serviceHub.myInfo.legalIdentities.first().owningKey)
         val signedTransaction = serviceHub.signInitialTransaction(transactionBuilder)
