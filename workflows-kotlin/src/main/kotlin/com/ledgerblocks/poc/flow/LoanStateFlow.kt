@@ -19,7 +19,7 @@ import java.util.*
 
 @InitiatingFlow
 @StartableByRPC
-class LoanStateFlow(private val uuid: UUID,private val lbUUID: UUID: UUID, private val loanAmount: Int,private val loanPeriod: Int,private val interestRate: Int,private val emi: Int,private val loanPurpose: String): FlowLogic<String>(){
+class LoanStateFlow(private val uuid: UUID,private val lbUUID: UUID, private val loanAmount: Int,private val loanPeriod: Int,private val interestRate: Int,private val emi: Int,private val loanPurpose: String): FlowLogic<String>(){
 
     @Suspendable
     override fun call(): String {
