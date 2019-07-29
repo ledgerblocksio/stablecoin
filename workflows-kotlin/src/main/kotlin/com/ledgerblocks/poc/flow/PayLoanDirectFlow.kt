@@ -19,19 +19,19 @@ import java.util.*
 
 @InitiatingFlow
 @StartableByRPC//private val name: String
-class PayLoanDirectFlow(private val uuid: UUID, private val amtToPay: Int, private val cardNumber: Int,private val lbuuid: UUID): FlowLogic<String>(){
+class PayLoanDirectFlow(private val uuid: UUID, private val lbUUID: UUID, private val amtToPay: Int, private val cardNumber: Int): FlowLogic<String>(){
 
     @Suspendable
     override fun call(): String {
         val notary = serviceHub.networkMapCache.notaryIdentities.first()
         val payment:String
-       
+
         val accountService = serviceHub.cordaService(KeyManagementBackedAccountService::class.java)
-       
-        val lbAccountInfo=accountService.accountInfo(lbuuid)
+
+        val lbAccountInfo=accountService.accountInfo(lbUUID)
         val resultMoveTokenInfo:StateAndRef<TokenState>
 
-        resultMoveTokenInfo=subFlow(MoveTokensBetweenAccounts(uuid,lbuuid,amtToPay))
+        resultMoveTokenInfo=subFlow(MoveTokensBetweenAccounts(uuid,lbUUID,amtToPay))
 
         if(!(resultMoveTokenInfo.equals(0))) {
             payment = "success"
@@ -40,7 +40,7 @@ class PayLoanDirectFlow(private val uuid: UUID, private val amtToPay: Int, priva
             payment = "failure"
         }
         val bAccountInfo=accountService.accountInfo(uuid)
-       val payLoanState= PayLoanState(uuid,lbuuid,payment, bAccountInfo!!.state.data.accountHost)
+        val payLoanState= PayLoanState(uuid,lbUUID,payment, bAccountInfo!!.state.data.accountHost)
         val transactionBuilder = TransactionBuilder(notary)
                 .addInputState(resultMoveTokenInfo)
                 .addOutputState(payLoanState)
@@ -51,7 +51,7 @@ class PayLoanDirectFlow(private val uuid: UUID, private val amtToPay: Int, priva
         val sessions = if (!serviceHub.myInfo.isLegalIdentity(lbAccountInfo.state.data.accountHost))
             Collections.singletonList(accountSession)
         else
-          Collections.emptyList()
+            Collections.emptyList()
         return subFlow(FinalityFlow(signedTransaction, sessions)).coreTransaction.outRefsOfType<PayLoanState>().single().state.data.payment
 
     }
