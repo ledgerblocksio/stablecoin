@@ -3,6 +3,7 @@ package com.ledgerblocks.poc.server
 import com.ledgerblocks.poc.flow.GoodsPurchaseFlow
 import com.ledgerblocks.poc.flow.IdentityStateFlow
 import com.ledgerblocks.poc.flow.LoanStateFlow
+import com.ledgerblocks.poc.flow.PayLoanDirectFlow
 import com.ledgerblocks.poc.state.IdentityState
 import com.ledgerblocks.poc.state.LoanState
 import com.ledgerblocks.poc.state.TokenState
