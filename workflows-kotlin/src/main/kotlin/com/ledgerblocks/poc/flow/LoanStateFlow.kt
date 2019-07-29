@@ -19,12 +19,14 @@ import java.util.*
 
 @InitiatingFlow
 @StartableByRPC
-class LoanStateFlow(private val uuid: UUID,private val lbUUID: UUID, private val loanAmount: Int,private val loanPeriod: Int,private val interestRate: Int,private val emi: Int,private val loanPurpose: String): FlowLogic<String>(){
+class LoanStateFlow(private val uuid: UUID, private val loanAmount: Int,private val loanPeriod: Int,private val interestRate: Int,private val emi: Int,private val loanPurpose: String): FlowLogic<String>(){
 
     @Suspendable
     override fun call(): String {
+
+
         val notary = serviceHub.networkMapCache.notaryIdentities.first()
-       val loanDecision :String
+        val loanDecision :String
         val accountService = serviceHub.cordaService(KeyManagementBackedAccountService::class.java)
 
 
@@ -32,21 +34,21 @@ class LoanStateFlow(private val uuid: UUID,private val lbUUID: UUID, private val
 
         val count= uuidLoanStateinfo.size
 
-       val accountInfo=accountService.accountInfo(uuid)
-       val lAmount = subFlow(IssueTokenToAccountIdFlow(uuid,loanAmount))
-       if (count==0)
-           loanDecision="Aprroved+"+"loanAmount:"+lAmount
+        val accountInfo=accountService.accountInfo(uuid)
+        val lAmount = subFlow(IssueTokenToAccountIdFlow(uuid,loanAmount))
+        if (count==0)
+            loanDecision="Aprroved+"+"loanAmount:"+lAmount
 
         else
-           loanDecision="Rejected+"+"loanAmount: "+0
+            loanDecision="Rejected+"+"loanAmount: "+0
 
-        val loanState = LoanState(uuid, loanAmount, loanPeriod, loanPurpose,loanDecision,interestRate,emi, accountInfo!!.state.data.accountHost)
+        val loanState = LoanState(uuid,loanAmount, loanPeriod, loanPurpose,loanDecision,interestRate,emi, accountInfo!!.state.data.accountHost)
         val transactionBuilder = TransactionBuilder(notary)
                 .addOutputState(loanState)
                 .addCommand(LoanContract.Commands.Loan(),serviceHub.myInfo.legalIdentities.first().owningKey)
         val signedTransaction = serviceHub.signInitialTransaction(transactionBuilder)
         transactionBuilder.verify(serviceHub)
-println("test=$loanDecision")
+        println("test=$loanDecision")
 
         return subFlow(FinalityFlow(signedTransaction, emptyList())).coreTransaction.outRefsOfType<LoanState>().single().state.data.loanDecision
     }
