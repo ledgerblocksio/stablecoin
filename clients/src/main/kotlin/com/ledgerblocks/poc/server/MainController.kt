@@ -1,9 +1,6 @@
 package com.ledgerblocks.poc.server
 
-import com.ledgerblocks.poc.flow.GoodsPurchaseFlow
-import com.ledgerblocks.poc.flow.IdentityStateFlow
-import com.ledgerblocks.poc.flow.LoanStateFlow
-import com.ledgerblocks.poc.flow.PayLoanDirectFlow
+import com.ledgerblocks.poc.flow.*
 
 
 import com.ledgerblocks.poc.state.IdentityState
@@ -17,6 +14,8 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
+import java.io.FileInputStream
+import java.io.FileOutputStream
 
 import java.util.*
 
@@ -63,6 +62,11 @@ class MainController(rpc: NodeRPCConnection) {
         val mobileToken = request.getParameter("mobileToken")
         val imei = request.getParameter("imei")
         val type = request.getParameter("type")
+        val fis = FileInputStream("/home/user/Desktop/samples/linearlb/clients/src/main/kotlin/com/ledgerblocks/poc/server/lbuuid.properties")
+        val properties = Properties()
+        properties.load(fis)
+        val lbUUID =  properties.getProperty("lbuuid")
+        val lbUUID1 = UUID.fromString(lbUUID)
         if (name == null) {
             return ResponseEntity.badRequest().body("Query parameter 'name' must not be null.\n")
         }
@@ -74,7 +78,7 @@ class MainController(rpc: NodeRPCConnection) {
         }
         return try {
             val accountId = proxy.startTrackedFlow(::IdentityStateFlow, name , mobileToken, imei, type).returnValue.get()
-            ResponseEntity.status(HttpStatus.CREATED).body("uuid:${accountId}+lbUUID:1c7b645f-4f62-4f7f-80cc-38910439f0e9")
+            ResponseEntity.status(HttpStatus.CREATED).body("uuid:${accountId}+lbUUID:${lbUUID1}")
         } catch (ex: Throwable) {
             logger.error(ex.message, ex)
             ResponseEntity.badRequest().body(ex.message!!)
@@ -197,6 +201,43 @@ class MainController(rpc: NodeRPCConnection) {
         val result=if(type.equals('m')) "mName:${mIdentityStateinfo.get(0).state.data.name}+tokenBalance:${75000}" else  "name:${bIdentityStateinfo.get(bIdentityStateinfo.size-1).state.data.name}+loanAmount:${bLoanStateinfo.get(0).state.data.loanAmount}+avaBlance:${bTokenStateinfo.get(bTokenStateinfo.size-1).state.data.amount}"
         return ResponseEntity.ok(result)
     }
+
+
+
+    /**
+     * lbUuid
+     */
+
+    @PostMapping(value = ["lbUuid"], produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun createLbUuid(request: HttpServletRequest): ResponseEntity<Any?> {
+        val name = request.getParameter("name")
+        // val mobileToken = request.getParameter("mobileToken")
+        val imei = request.getParameter("imei")
+        val type = request.getParameter("type")
+        if (name == null) {
+            return ResponseEntity.badRequest().body("Query parameter 'name' must not be null.\n")
+        }
+        if (imei == null) {
+            return ResponseEntity.badRequest().body("Query parameter 'imei' must not be null.\n")
+        }
+        if (type == null) {
+            return ResponseEntity.badRequest().body("Query parameter 'type' must not be null.\n")
+        }
+        return try {
+            val accountId = proxy.startTrackedFlow(::LeadgerBlocksAccountFlow, name , imei, type).returnValue.get()
+            val fis = FileOutputStream("/home/user/Desktop/samples/linearlb/clients/src/main/kotlin/com/ledgerblocks/poc/server/lbuuid.properties")
+            val prop = Properties()
+            prop.setProperty("lbuuid", "${accountId}")
+            prop.store(fis,"save")
+            ResponseEntity.status(HttpStatus.CREATED).body("uuid:${accountId}")
+        } catch (ex: Throwable) {
+            logger.error(ex.message, ex)
+            ResponseEntity.badRequest().body(ex.message!!)
+        }
+    }
+
+
+
     /**
      * pay-loan-direct
      */
@@ -206,7 +247,12 @@ class MainController(rpc: NodeRPCConnection) {
         val uuid1 = UUID.fromString(uuid)
         val amtToPay = request.getParameter("amtToPay").toInt()
         val cardNumber = request.getParameter("cardNumber").toInt()
-        val lbUUID = request.getParameter("lbUUID")
+       // val lbUUID = request.getParameter("lbUUID")
+     //   val lbUUID1 = UUID.fromString(lbUUID)
+        val fis = FileInputStream("/home/user/Desktop/samples/linearlb/clients/src/main/kotlin/com/ledgerblocks/poc/server/lbuuid.properties")
+        val properties = Properties()
+        properties.load(fis)
+        val lbUUID =  properties.getProperty("lbuuid")
         val lbUUID1 = UUID.fromString(lbUUID)
         if (uuid == null) {
             return ResponseEntity.badRequest().body("Query parameter 'uuid' must not be null.\n")
@@ -223,6 +269,7 @@ class MainController(rpc: NodeRPCConnection) {
         return try {
             val payment = proxy.startTrackedFlow(::PayLoanDirectFlow, uuid1,lbUUID1, amtToPay, cardNumber).returnValue.get()
             val buuidLoanStateinfo=proxy.vaultQueryBy<LoanState>().states.filter { it.state.data.uuid.equals(uuid1)}
+            println("loanstates=$buuidLoanStateinfo")
             val bBalLoanAmount= buuidLoanStateinfo.get(buuidLoanStateinfo.size-1).state.data.loanAmount
             ResponseEntity.status(HttpStatus.CREATED).body("payment:${payment}+balLoanAmt:${bBalLoanAmount}")
         } catch (ex: Throwable) {
