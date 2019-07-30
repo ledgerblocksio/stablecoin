@@ -62,11 +62,14 @@ class MainController(rpc: NodeRPCConnection) {
         val mobileToken = request.getParameter("mobileToken")
         val imei = request.getParameter("imei")
         val type = request.getParameter("type")
-        val fis = FileInputStream("/home/user/Desktop/samples/linearlb/clients/src/main/kotlin/com/ledgerblocks/poc/server/lbuuid.properties")
-        val properties = Properties()
-        properties.load(fis)
-        val lbUUID =  properties.getProperty("lbuuid")
-        val lbUUID1 = UUID.fromString(lbUUID)
+        //val currentDirectory = System.getProperty("user.dir")
+        //val lbPropDirectory = currentDirectory+"lbuuid.properties"
+        //val fis = FileInputStream("/home/user/Desktop/samples/linearlb/clients/src/main/kotlin/com/ledgerblocks/poc/server/lbuuid.properties")
+        //val fis = FileInputStream(lbPropDirectory)
+        //val properties = Properties()
+        //properties.load(fis)
+        //val lbUUID =  properties.getProperty("lbuuid")
+        //val lbUUID1 = UUID.fromString(lbUUID)
         if (name == null) {
             return ResponseEntity.badRequest().body("Query parameter 'name' must not be null.\n")
         }
@@ -78,7 +81,7 @@ class MainController(rpc: NodeRPCConnection) {
         }
         return try {
             val accountId = proxy.startTrackedFlow(::IdentityStateFlow, name , mobileToken, imei, type).returnValue.get()
-            ResponseEntity.status(HttpStatus.CREATED).body("uuid:${accountId}+lbUUID:${lbUUID1}")
+            ResponseEntity.status(HttpStatus.CREATED).body("uuid:${accountId}")
         } catch (ex: Throwable) {
             logger.error(ex.message, ex)
             ResponseEntity.badRequest().body(ex.message!!)
@@ -208,7 +211,7 @@ class MainController(rpc: NodeRPCConnection) {
      * lbUuid
      */
 
-    @PostMapping(value = ["lbUuid"], produces = [MediaType.APPLICATION_JSON_VALUE])
+    @PostMapping(value = ["lbUUID"], produces = [MediaType.APPLICATION_JSON_VALUE])
     fun createLbUuid(request: HttpServletRequest): ResponseEntity<Any?> {
         val name = request.getParameter("name")
         // val mobileToken = request.getParameter("mobileToken")
@@ -225,7 +228,8 @@ class MainController(rpc: NodeRPCConnection) {
         }
         return try {
             val accountId = proxy.startTrackedFlow(::LeadgerBlocksAccountFlow, name , imei, type).returnValue.get()
-            val fis = FileOutputStream("/home/user/Desktop/samples/linearlb/clients/src/main/kotlin/com/ledgerblocks/poc/server/lbuuid.properties")
+            val currentDirectory = System.getProperty("user.dir")
+            val fis = FileOutputStream(currentDirectory + "/src/main/resources/lbuuid.properties")
             val prop = Properties()
             prop.setProperty("lbuuid", "${accountId}")
             prop.store(fis,"save")
@@ -235,7 +239,6 @@ class MainController(rpc: NodeRPCConnection) {
             ResponseEntity.badRequest().body(ex.message!!)
         }
     }
-
 
 
     /**
@@ -249,7 +252,8 @@ class MainController(rpc: NodeRPCConnection) {
         val cardNumber = request.getParameter("cardNumber").toInt()
        // val lbUUID = request.getParameter("lbUUID")
      //   val lbUUID1 = UUID.fromString(lbUUID)
-        val fis = FileInputStream("/home/user/Desktop/samples/linearlb/clients/src/main/kotlin/com/ledgerblocks/poc/server/lbuuid.properties")
+        val currentDirectory = System.getProperty("user.dir")
+        val fis = FileInputStream(currentDirectory + "/src/main/resources/lbuuid.properties")
         val properties = Properties()
         properties.load(fis)
         val lbUUID =  properties.getProperty("lbuuid")
