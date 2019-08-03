@@ -14,12 +14,12 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
-import java.io.FileInputStream
-import java.io.FileOutputStream
-
+import java.io.*
+import java.io.File
 import java.util.*
 
 import javax.servlet.http.HttpServletRequest
+import kotlin.collections.ArrayList
 
 val SERVICE_NAMES = listOf("Notary", "Network Map Service")
 
@@ -283,4 +283,54 @@ class MainController(rpc: NodeRPCConnection) {
 
     }
 
+
+    @PostMapping(value = ["addEmail"], produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun addEmail (request: HttpServletRequest): ResponseEntity<String> {
+        val email = request.getParameter("email")
+        if (email == null){
+            return ResponseEntity.badRequest().body("Email must not be empty")
+        }
+        val emailFile = System.getProperty("user.dir")+"/src/main/resources/email.csv"
+        return try {
+            File(emailFile).appendText(email)
+            File(emailFile).appendText(System.getProperty("line.separator"))
+            ResponseEntity.status(HttpStatus.CREATED).body("added:yes")
+        } catch (ex: Throwable) {
+            logger.error(ex.message, ex)
+            ResponseEntity.badRequest().body(ex.message!!)
+        }
+    }
+
+
+    @PostMapping(value = ["verifyEmail"], produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun verifyEmail (request: HttpServletRequest): ResponseEntity<String> {
+        val email = request.getParameter("email")
+        var allowed = "no"
+        var fileReader: BufferedReader? = null
+        if (email == null){
+            return ResponseEntity.badRequest().body("Email must not be empty")
+        }
+        return try {
+            fileReader = BufferedReader(FileReader(System.getProperty("user.dir")+"/src/main/resources/email.csv"))
+            var emailLine = fileReader.readLine()
+            while (emailLine != null){
+                if(emailLine.equals(email)){
+                    allowed="yes"
+                    break
+                }
+                emailLine =fileReader.readLine()
+            }
+            ResponseEntity.status(HttpStatus.CREATED).body("verified:${allowed}")
+        } catch (ex: Throwable){
+            logger.error(ex.message, ex)
+            ResponseEntity.badRequest().body(ex.message!!)
+        }finally {
+            try {
+                fileReader!!.close()
+            } catch (e: IOException) {
+                println("Closing fileReader Error!")
+                e.printStackTrace()
+            }
+        }
+    }
 }
