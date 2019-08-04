@@ -62,7 +62,7 @@ class MainController(rpc: NodeRPCConnection) {
     @PostMapping(value = ["identity"], produces = [MediaType.APPLICATION_JSON_VALUE])
     fun createIdentity(request: HttpServletRequest): ResponseEntity<Any?> {
         val name = request.getParameter("name")
-        val mobileToken = request.getParameter("mobileToken")
+        val fcmToken = request.getParameter("fcmToken")
         val imei = request.getParameter("imei")
         val type = request.getParameter("type")
         //val currentDirectory = System.getProperty("user.dir")
@@ -83,7 +83,7 @@ class MainController(rpc: NodeRPCConnection) {
             return ResponseEntity.badRequest().body("Query parameter 'type' must not be null.\n")
         }
         return try {
-            val accountId = proxy.startTrackedFlow(::IdentityStateFlow, name , mobileToken, imei, type).returnValue.get()
+            val accountId = proxy.startTrackedFlow(::IdentityStateFlow, name , fcmToken, imei, type).returnValue.get()
             ResponseEntity.status(HttpStatus.CREATED).body("uuid:${accountId}")
         } catch (ex: Throwable) {
             logger.error(ex.message, ex)
@@ -154,7 +154,8 @@ class MainController(rpc: NodeRPCConnection) {
         val mUuid1 = UUID.fromString(mUuid)
         val purchaseAmt = request.getParameter("purchaseAmount").toInt()
         val goodsDesc = request.getParameter("goodsDesc")
-        var fcmToken = "fcmToken"
+
+
         if (bUuid == null) {
             return ResponseEntity.badRequest().body("Query parameter 'bUUID' must not be null.\n")
         }
@@ -187,24 +188,35 @@ class MainController(rpc: NodeRPCConnection) {
         // 1. get mobileToken from identity state of respective merchant
         // 2. get name of the borrower
         // 3. Purchase amount
-        /*
-        finally {
+
+        /*finally {
             try {
+                val bIdentityStateinfo=proxy.vaultQueryBy<IdentityState>().states.filter {it.state.data.uuid.equals(bUuid1)}
+                val borrowrName = bIdentityStateinfo.get(0).state.data.name
+                val mIdentityStateinfo=proxy.vaultQueryBy<IdentityState>().states.filter {it.state.data.uuid.equals(mUuid1)}
+                val mFcmToken = mIdentityStateinfo.get(0).state.data.fcmToken
+                @todo the above 2 lines are resulting in exception; they are execpted to retrieve FCM Token of the merchant from identity state
+
+
+                println("FCM Borrower: {$borrowrName}")
+                println("FCM Token: {$mFcmToken}")
+                println("Merchant FCM Token: {${mIdentityStateinfo.get(0).state.data.fcmToken}}")
+                println("Merchant FCM Token: {${mIdentityStateinfo.get(0).state.data.fcmToken}}")
+                /*
                 var message = Message.builder()
-                        .putData("borrower", "borrowerName")
+                        .putData("borrower", bIdentityStateinfo.get(0).state.data.name)
                         .putData("tokens", purchaseAmt.toString())
-                        .setToken(fcmToken)
+                        .setToken(mIdentityStateinfo.get(0).state.data.mobileToken)
                         .build()
                 var response = FirebaseMessaging.getInstance().send(message)
                 println("FCM response: {$response}")
+                 */
             } catch (e: FirebaseMessagingException){
                 logger.error(e.message, e)
             }
         }
-        */
+         */
     }
-
-
 
     /**
      * Dashboard
@@ -230,6 +242,27 @@ class MainController(rpc: NodeRPCConnection) {
     }
 
 
+    /**
+     * FCM Token update and check if there is a new build
+     */
+    @PostMapping(value= ["fcmUpdate"], produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun fcmUpdate(request: HttpServletRequest): ResponseEntity<String>{
+        val uuid = request.getParameter("uuid")
+        val fcmToken = request.getParameter("fcmToken")
+        var updated: String = "no"
+        return try{
+            val identityStateinfo = proxy.vaultQueryBy<IdentityState>().states.filter {it.state.data.uuid.equals(uuid)}
+            if(identityStateinfo.isNotEmpty()){
+                // @todo Hanuman - update identity state with the new fcmToken
+                updated = "yes"
+            }
+            ResponseEntity.status(HttpStatus.CREATED).body("updated:{$updated}")
+        }catch (ex: Throwable){
+            logger.error(ex.message, ex)
+            ResponseEntity.badRequest().body(ex.message!!)
+        }
+    }
+
 
     /**
      * lbUuid
@@ -241,6 +274,7 @@ class MainController(rpc: NodeRPCConnection) {
         // val mobileToken = request.getParameter("mobileToken")
         val imei = request.getParameter("imei")
         val type = request.getParameter("type")
+        //val fmToken = "notrequired"
         if (name == null) {
             return ResponseEntity.badRequest().body("Query parameter 'name' must not be null.\n")
         }

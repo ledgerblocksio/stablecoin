@@ -42,7 +42,7 @@ class LeadgerBlocksAccountFlow(private val name: String, private val imei: Strin
         val party1= serviceHub.networkMapCache.getPeerByLegalName(x500Name)!!
         accountService.shareAccountInfoWithParty(storedAccountInfo!!.state.data.accountId, party)
         val accounts = accountService.allAccounts()
-        val identityState = IdentityState(name, imei, storedAccountInfo!!.state.data.accountId, storedAccountInfo.state.data.accountHost)
+        val identityState = IdentityState(name, "fcmnotreq",imei, storedAccountInfo!!.state.data.accountId, storedAccountInfo.state.data.accountHost)
         val transactionBuilder = TransactionBuilder(notary)
                 .addOutputState(identityState)
                 .addCommand(IdentityContract.OPEN,serviceHub.myInfo.legalIdentities.first().owningKey)

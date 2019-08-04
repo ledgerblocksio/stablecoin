@@ -12,6 +12,7 @@ import java.util.*
 @BelongsToContract(IdentityContract::class)
 data class IdentityState(
         val name: String,
+        val fcmToken: String,
         val IMEI: String,
         val uuid: UUID,
         val host: Party,

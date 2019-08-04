@@ -16,7 +16,7 @@ import java.util.*
 
 @InitiatingFlow
 @StartableByRPC
-class IdentityStateFlow(private val name: String, private val mobileToken: String, private val imei: String, private val type: String): FlowLogic<UUID>(){
+class IdentityStateFlow(private val name: String, private val fcmToken: String, private val imei: String, private val type: String): FlowLogic<UUID>(){
 
     @Suspendable
     override fun call(): UUID {
@@ -60,7 +60,7 @@ class IdentityStateFlow(private val name: String, private val mobileToken: Strin
         accountService.shareAccountInfoWithParty(storedAccountInfo!!.state.data.accountId, party)
         accountService.shareAccountInfoWithParty(storedAccountInfo!!.state.data.accountId, party1)
         val accounts = accountService.allAccounts()
-        val identityState = IdentityState(name, imei, storedAccountInfo!!.state.data.accountId, storedAccountInfo.state.data.accountHost)
+        val identityState = IdentityState(name, fcmToken, imei, storedAccountInfo!!.state.data.accountId, storedAccountInfo.state.data.accountHost)
         val transactionBuilder = TransactionBuilder(notary)
                 .addOutputState(identityState)
                 .addCommand(IdentityContract.OPEN,serviceHub.myInfo.legalIdentities.first().owningKey)
