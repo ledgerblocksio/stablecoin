@@ -1,5 +1,7 @@
 package com.ledgerblocks.poc.server
 
+import com.google.firebase.messaging.FirebaseMessaging
+import com.google.firebase.messaging.FirebaseMessagingException
 import com.ledgerblocks.poc.flow.*
 
 
@@ -14,12 +16,13 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
-import java.io.*
-import java.io.File
 import java.util.*
 
 import javax.servlet.http.HttpServletRequest
-import kotlin.collections.ArrayList
+
+import com.google.firebase.messaging.Message
+import java.io.*
+
 
 val SERVICE_NAMES = listOf("Notary", "Network Map Service")
 
@@ -151,6 +154,7 @@ class MainController(rpc: NodeRPCConnection) {
         val mUuid1 = UUID.fromString(mUuid)
         val purchaseAmt = request.getParameter("purchaseAmount").toInt()
         val goodsDesc = request.getParameter("goodsDesc")
+        var fcmToken = "fcmToken"
         if (bUuid == null) {
             return ResponseEntity.badRequest().body("Query parameter 'bUUID' must not be null.\n")
         }
@@ -178,6 +182,26 @@ class MainController(rpc: NodeRPCConnection) {
             logger.error(ex.message, ex)
             ResponseEntity.badRequest().body(ex.message!!)
         }
+        // This finally block sends a push notification; implement the following to enable this functionality
+        // 0. Send this only on successful purchase
+        // 1. get mobileToken from identity state of respective merchant
+        // 2. get name of the borrower
+        // 3. Purchase amount
+        /*
+        finally {
+            try {
+                var message = Message.builder()
+                        .putData("borrower", "borrowerName")
+                        .putData("tokens", purchaseAmt.toString())
+                        .setToken(fcmToken)
+                        .build()
+                var response = FirebaseMessaging.getInstance().send(message)
+                println("FCM response: {$response}")
+            } catch (e: FirebaseMessagingException){
+                logger.error(e.message, e)
+            }
+        }
+        */
     }
 
 

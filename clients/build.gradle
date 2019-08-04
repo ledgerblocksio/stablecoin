@@ -61,6 +61,9 @@ dependencies {
 
     implementation "com.r3.accounts-sdk:flows:$accounts_version"
     implementation "com.r3.accounts-sdk:states-and-contracts:$accounts_version"
+
+    //Firebase implementation
+    implementation 'com.google.firebase:firebase-admin:6.9.0'
 }
 
 tasks.withType(KotlinCompile) {
