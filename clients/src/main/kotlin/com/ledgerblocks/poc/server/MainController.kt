@@ -473,7 +473,6 @@ class MainController(rpc: NodeRPCConnection) {
         }
 
     }
-s
 
 
 
