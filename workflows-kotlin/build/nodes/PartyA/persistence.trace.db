@@ -1,10 +1,10 @@
-2019-06-22 03:15:25 jdbc[3]: exception
+2019-08-29 08:11:29 jdbc[3]: exception
 org.h2.jdbc.JdbcSQLException: Table "NODE_CHECKPOINTS" not found; SQL statement:
 select count(*) from node_checkpoints [42102-197]
-2019-06-22 03:15:33 jdbc[3]: exception
+2019-08-29 08:11:41 jdbc[3]: exception
 org.h2.jdbc.JdbcSQLException: Table "DATABASECHANGELOGLOCK" not found; SQL statement:
 select count(*) from PUBLIC.DATABASECHANGELOGLOCK [42102-197]
-2019-06-22 03:15:34 jdbc[3]: exception
+2019-08-29 08:11:42 jdbc[3]: exception
 org.h2.jdbc.JdbcSQLException: Column "T.RELEVANCY_STATUS" not found; SQL statement:
 select t.relevancy_status from PUBLIC.vault_states t where 0=1 [42122-197]
 	at org.h2.message.DbException.getJdbcSQLException(DbException.java:357)
@@ -55,7 +55,7 @@ select t.relevancy_status from PUBLIC.vault_states t where 0=1 [42122-197]
 	at picocli.CommandLine.parseWithHandlers(CommandLine.java:1405)
 	at net.corda.cliutils.CordaCliWrapperKt.start(CordaCliWrapper.kt:72)
 	at net.corda.node.Corda.main(Corda.kt:13)
-2019-06-22 03:15:36 jdbc[3]: exception
+2019-08-29 08:11:44 jdbc[3]: exception
 org.h2.jdbc.JdbcSQLException: Column "T.STATE_MACHINE_RUN_ID" not found; SQL statement:
 select t.state_machine_run_id from PUBLIC.node_transactions t where 0=1 [42122-197]
 	at org.h2.message.DbException.getJdbcSQLException(DbException.java:357)

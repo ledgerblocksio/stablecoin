@@ -1,5 +1,6 @@
 package com.ledgerblocks.poc.state
 
+
 import com.ledgerblocks.poc.contract.LoanContract
 import net.corda.core.contracts.BelongsToContract
 import net.corda.core.contracts.LinearState

@@ -16,38 +16,37 @@ import java.util.*
 
 @InitiatingFlow
 @StartableByRPC
-class IdentityStateFlow(private val name: String, private val fcmToken: String, private val imei: String, private val type: String): FlowLogic<UUID>(){
+class IdentityStateFlow(private val name: String, private val fcmToken: String, private val imei: String, private val type: String): FlowLogic<SignedTransaction>(){
 
     @Suspendable
-    override fun call(): UUID {
+    override fun call(): SignedTransaction {
         val notary = serviceHub.networkMapCache.notaryIdentities.first()
-        val  newImei:String
+        var  newIMEI: String
         val  newParty : String
         val  newParty1 : String
         if(type.equals('m')) {
-            newImei=type+imei
+            //newIMEI=type+imei
             newParty= "O=PartyA,L=London,C=GB"
             newParty1="O=PartyC,L=Paris,C=FR"
         }
         else if (type.equals('b'))
         {
-            newImei=type+imei
+            //newIMEI=type+imei
             newParty= "O=PartyB,L=New York,C=US"
             newParty1="O=PartyC,L=Paris,C=FR"
         }
         else if(type.equals('o')) {
-            newImei=type+imei
+            //newIMEI=type+imei
             newParty= "O=PartyA,L=London,C=GB"
-
             newParty1= "O=PartyB,L=New York,C=US"
         }
         else
         {
-            newImei=imei
+            //newIMEI=imei
             newParty= "O=PartyA,L=London,C=GB"
             newParty1="O=PartyC,L=Paris,C=FR"
         }
-        val id = type+name + newImei
+        val id = type+name+imei
         val accountService = serviceHub.cordaService(KeyManagementBackedAccountService::class.java)
         val newAccountCreation = accountService.createAccount(id)
         val storedAccountInfo = accountService.accountInfo(id)
@@ -55,7 +54,7 @@ class IdentityStateFlow(private val name: String, private val fcmToken: String, 
         val party= serviceHub.networkMapCache.getPeerByLegalName(x500Name)!!
 
         val x500Name1 = CordaX500Name.parse(newParty1)
-        val party1= serviceHub.networkMapCache.getPeerByLegalName(x500Name)!!
+        val party1= serviceHub.networkMapCache.getPeerByLegalName(x500Name1)!!
 
         accountService.shareAccountInfoWithParty(storedAccountInfo!!.state.data.accountId, party)
         accountService.shareAccountInfoWithParty(storedAccountInfo!!.state.data.accountId, party1)
@@ -67,7 +66,21 @@ class IdentityStateFlow(private val name: String, private val fcmToken: String, 
         val signedTransaction = serviceHub.signInitialTransaction(transactionBuilder)
         transactionBuilder.verify(serviceHub)
 
-        return subFlow(FinalityFlow(signedTransaction, emptyList())).coreTransaction.outRefsOfType<IdentityState>().single().state.data.uuid
+        return subFlow(FinalityFlow(signedTransaction, emptyList())).also {
+
+            val broadcastToParties =
+                    serviceHub.networkMapCache.allNodes.map { node -> node.legalIdentities.first() }
+                            .minus(serviceHub.networkMapCache.notaryIdentities)
+                            .minus(party)
+                            .minus(party1)
+            subFlow(
+                    BroadcastTransactionFlow(
+                            it, broadcastToParties
+                    )
+            )
+        }
+
+        //.coreTransaction.outRefsOfType<IdentityState>().single().state.data.uuid
     }
 
 }

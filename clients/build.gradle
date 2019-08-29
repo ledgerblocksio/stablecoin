@@ -54,6 +54,8 @@ dependencies {
     compile "org.springframework.boot:spring-boot-starter-log4j2:$spring_boot_version"
     compile "org.apache.logging.log4j:log4j-web:$log4j_version"
 
+    //compile 'org.apache.httpcomponents:httpclient:4.5.9'
+
     cordapp project(":contracts-java")
     cordapp project(":workflows-java")
     cordapp project(":contracts-kotlin")
@@ -64,6 +66,11 @@ dependencies {
 
     //Firebase implementation
     implementation 'com.google.firebase:firebase-admin:6.9.0'
+    
+    
+    //http client implementation
+    implementation 'io.github.rybalkinsd:kohttp:0.10.0'
+//    implementation(group = "io.github.rybalkinsd", name = "kohttp", version = "0.10.0")
 }
 
 tasks.withType(KotlinCompile) {

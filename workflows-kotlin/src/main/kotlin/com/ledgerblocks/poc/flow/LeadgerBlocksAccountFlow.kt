@@ -39,8 +39,9 @@ class LeadgerBlocksAccountFlow(private val name: String, private val imei: Strin
         val x500Name = CordaX500Name.parse(newParty)
         val party= serviceHub.networkMapCache.getPeerByLegalName(x500Name)!!
         val x500Name1 = CordaX500Name.parse(newParty1)
-        val party1= serviceHub.networkMapCache.getPeerByLegalName(x500Name)!!
+        val party1= serviceHub.networkMapCache.getPeerByLegalName(x500Name1)!!
         accountService.shareAccountInfoWithParty(storedAccountInfo!!.state.data.accountId, party)
+        accountService.shareAccountInfoWithParty(storedAccountInfo!!.state.data.accountId, party1)
         val accounts = accountService.allAccounts()
         val identityState = IdentityState(name, "fcmnotreq",imei, storedAccountInfo!!.state.data.accountId, storedAccountInfo.state.data.accountHost)
         val transactionBuilder = TransactionBuilder(notary)

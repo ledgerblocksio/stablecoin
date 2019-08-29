@@ -5,18 +5,26 @@ import net.corda.core.contracts.BelongsToContract
 import net.corda.core.contracts.CommandAndState
 import net.corda.core.contracts.OwnableState
 import net.corda.core.identity.AbstractParty
+import net.corda.core.identity.Party
+
 import java.security.PublicKey
 import java.util.*
 
 
 @BelongsToContract(TokenContract::class)
 data class TokenState(
-        val amount: Int,
-        val accountId: UUID,
+        val sender: Party,
+        val recipient: Party,
+        val amount: Int,            // val tokenBalance: Int  val transTokens: Int
+        val fromAccountId: UUID,    // replaces accountID and refers to the entity holding tokens before the move/issue
+        val toAccountId: UUID,      // represents entity, who is getting tokens
+        val purpose:String,
         val owningKey: PublicKey? = null,
         override val owner: AbstractParty,
 
+        // override val participants1: List<Party> = listOf(sender, recipient)
         override val participants: List<AbstractParty>): OwnableState {
+
     override fun withNewOwner(newOwner: AbstractParty): CommandAndState {
         return CommandAndState(TokenContract.Commands.Transfer(), copy(owner = newOwner))
     }

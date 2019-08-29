@@ -9,6 +9,7 @@ import com.ledgerblocks.poc.state.LoanState
 import net.corda.accounts.service.KeyManagementBackedAccountService
 
 import net.corda.core.flows.*
+import net.corda.core.identity.CordaX500Name
 
 import net.corda.core.node.services.queryBy
 
@@ -49,8 +50,38 @@ class LoanStateFlow(private val uuid: UUID, private val loanAmount: Int,private 
         val signedTransaction = serviceHub.signInitialTransaction(transactionBuilder)
         transactionBuilder.verify(serviceHub)
         println("test=$loanDecision")
+        var  party1 = "O=PartyA,L=London,C=GB"
+        var  party2 = "O=PartyB,L=New York,C=US"
+        var  party3 = "O=PartyC,L=Paris,C=FR"
 
-        return subFlow(FinalityFlow(signedTransaction, emptyList())).coreTransaction.outRefsOfType<LoanState>().single().state.data.loanDecision
+        val x500Name = CordaX500Name.parse(party1)
+        val bParty= serviceHub.networkMapCache.getPeerByLegalName(x500Name)!!
+
+        val x500Name1 = CordaX500Name.parse(party2)
+        val mParty= serviceHub.networkMapCache.getPeerByLegalName(x500Name1)!!
+
+        val x500Name2 = CordaX500Name.parse(party3)
+        val lbParty= serviceHub.networkMapCache.getPeerByLegalName(x500Name2)!!
+
+
+
+        return subFlow(FinalityFlow(signedTransaction, emptyList())).coreTransaction.outRefsOfType<LoanState>().single().state.data.loanDecision/*also {
+
+            val broadcastToParties =
+                    serviceHub.networkMapCache.allNodes.map { node -> node.legalIdentities.first() }
+                            .minus(serviceHub.networkMapCache.notaryIdentities)
+                            .minus(mParty)
+                            .minus(bParty)
+                            .minus(lbParty)
+            subFlow(
+                    BroadcastTransactionFlow(
+                            it, broadcastToParties
+                    )
+            )
+        }*/
+
+
+
     }
 
 }

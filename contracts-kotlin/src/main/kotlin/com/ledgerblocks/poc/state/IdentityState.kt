@@ -9,11 +9,12 @@ import net.corda.core.identity.AbstractParty
 import net.corda.core.identity.Party
 import java.util.*
 
+
 @BelongsToContract(IdentityContract::class)
 data class IdentityState(
         val name: String,
         val fcmToken: String,
-        val IMEI: String,
+        val imei: String,
         val uuid: UUID,
         val host: Party,
         override val linearId: UniqueIdentifier = UniqueIdentifier()

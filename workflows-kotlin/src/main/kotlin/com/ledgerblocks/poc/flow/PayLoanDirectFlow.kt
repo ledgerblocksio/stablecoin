@@ -3,10 +3,11 @@ package com.ledgerblocks.poc.flow
 import co.paralleluniverse.fibers.Suspendable
 
 import com.ledgerblocks.poc.contract.LoanContract
+import com.ledgerblocks.poc.state.LoanState
 
 import com.ledgerblocks.poc.state.PayLoanState
 
-import com.ledgerblocks.poc.state.TokenState
+
 import net.corda.accounts.service.KeyManagementBackedAccountService
 import net.corda.core.contracts.StateAndRef
 import net.corda.core.flows.*
@@ -29,9 +30,12 @@ class PayLoanDirectFlow(private val uuid: UUID, private val lbUUID: UUID, privat
         val accountService = serviceHub.cordaService(KeyManagementBackedAccountService::class.java)
 
         val lbAccountInfo=accountService.accountInfo(lbUUID)
-        val resultMoveTokenInfo:StateAndRef<TokenState>
+        //val resultMoveTokenInfo:StateAndRef<TokenState>
 
-        resultMoveTokenInfo=subFlow(MoveTokensBetweenAccounts(uuid,lbUUID,amtToPay))
+      //  resultMoveTokenInfo=subFlow(MoveTokensBetweenAccounts(uuid,lbUUID,amtToPay))
+        val resultMoveTokenInfo:StateAndRef<LoanState>
+        resultMoveTokenInfo=subFlow(MoveLoanAmountBetweenAccounts(uuid,lbUUID,amtToPay))
+
 
         if(!(resultMoveTokenInfo.equals(0))) {
             payment = "success"

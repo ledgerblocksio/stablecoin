@@ -17,13 +17,16 @@ open class Server {
     /**
      * Spring Bean that binds a Corda Jackson object-mapper to HTTP message types used in Spring.
      */
+    /*
     @Bean
     open fun mappingJackson2HttpMessageConverter(@Autowired rpcConnection: NodeRPCConnection): MappingJackson2HttpMessageConverter {
         val mapper = JacksonSupport.createDefaultMapper(rpcConnection.proxy)
-        val converter = MappingJackson2HttpMessageConverter()
-        converter.objectMapper = mapper
+        //val converter = MappingJackson2HttpMessageConverter()
+        //converter.objectMapper = mapper
         return converter
     }
+
+     */
 }
 
 /**

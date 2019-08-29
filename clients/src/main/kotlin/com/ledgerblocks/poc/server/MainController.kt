@@ -16,13 +16,15 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
+import java.io.FileInputStream
+import java.io.FileOutputStream
+
 import java.util.*
 
 import javax.servlet.http.HttpServletRequest
 
 import com.google.firebase.messaging.Message
 import java.io.*
-
 
 val SERVICE_NAMES = listOf("Notary", "Network Map Service")
 
@@ -62,7 +64,7 @@ class MainController(rpc: NodeRPCConnection) {
     @PostMapping(value = ["identity"], produces = [MediaType.APPLICATION_JSON_VALUE])
     fun createIdentity(request: HttpServletRequest): ResponseEntity<Any?> {
         val name = request.getParameter("name")
-        val fcmToken = request.getParameter("fcmToken")
+        val mobileToken = request.getParameter("fcmToken")
         val imei = request.getParameter("imei")
         val type = request.getParameter("type")
         //val currentDirectory = System.getProperty("user.dir")
@@ -83,8 +85,44 @@ class MainController(rpc: NodeRPCConnection) {
             return ResponseEntity.badRequest().body("Query parameter 'type' must not be null.\n")
         }
         return try {
-            val accountId = proxy.startTrackedFlow(::IdentityStateFlow, name , fcmToken, imei, type).returnValue.get()
+            val sign = proxy.startTrackedFlow(::IdentityStateFlow, name , mobileToken, imei, type).returnValue.get()
+            val accountId=  sign.coreTransaction.outRefsOfType<IdentityState>().single().state.data.uuid
+
+            val bUuidIdentityStateinfo=proxy.vaultQueryBy<IdentityState>().states
+            println("test=$bUuidIdentityStateinfo")
             ResponseEntity.status(HttpStatus.CREATED).body("uuid:${accountId}")
+        } catch (ex: Throwable) {
+            logger.error(ex.message, ex)
+            ResponseEntity.badRequest().body(ex.message!!)
+        }
+    }
+
+
+
+    /**
+     * UpdatedAccountInfo
+     */
+    @PostMapping(value = ["updateAccount"], produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun updatedAccountInfo(request: HttpServletRequest): ResponseEntity<Any?> {
+        val uuid = request.getParameter("uuid")
+        val uuid1 = UUID.fromString(uuid)
+        val mobileToken = request.getParameter("fcmToken")
+
+
+        if (uuid == null) {
+            return ResponseEntity.badRequest().body("Query parameter 'name' must not be null.\n")
+        }
+        if (mobileToken == null) {
+            return ResponseEntity.badRequest().body("Query parameter 'fcmToken' must not be null.\n")
+        }
+
+        return try {
+            val sign = proxy.startTrackedFlow(::UpdateAccountInfoFlow, uuid1 , mobileToken).returnValue.get()
+            //val accountId=  sign.coreTransaction.outRefsOfType<IdentityState>().single().state.data.uuid
+
+            val identityStateinfo=proxy.vaultQueryBy<IdentityState>().states
+            println("test=$identityStateinfo")
+            ResponseEntity.status(HttpStatus.CREATED).body("updated:yes")
         } catch (ex: Throwable) {
             logger.error(ex.message, ex)
             ResponseEntity.badRequest().body(ex.message!!)
@@ -100,8 +138,8 @@ class MainController(rpc: NodeRPCConnection) {
     fun createLoan(request: HttpServletRequest): ResponseEntity<String> {
         val uuid = request.getParameter("uuid")
         val uuid1 = UUID.fromString(uuid)
-      //  val lbUUID = request.getParameter("lbUUID")
-       // val lbUUID1 = UUID.fromString(lbUUID)
+        //  val lbUUID = request.getParameter("lbUUID")
+        // val lbUUID1 = UUID.fromString(lbUUID)
         val loanAmount = request.getParameter("loanAmount").toInt()
         val loanPeriod = request.getParameter("loanPeriod").toInt()
         val loanPurpose = request.getParameter("loanPurpose")
@@ -154,8 +192,6 @@ class MainController(rpc: NodeRPCConnection) {
         val mUuid1 = UUID.fromString(mUuid)
         val purchaseAmt = request.getParameter("purchaseAmount").toInt()
         val goodsDesc = request.getParameter("goodsDesc")
-
-
         if (bUuid == null) {
             return ResponseEntity.badRequest().body("Query parameter 'bUUID' must not be null.\n")
         }
@@ -170,7 +206,7 @@ class MainController(rpc: NodeRPCConnection) {
         }
         return try {
             val purchase = proxy.startTrackedFlow(::GoodsPurchaseFlow, bUuid1, mUuid1, purchaseAmt, goodsDesc).returnValue.get()
-            val bUuidTokenStateinfo=proxy.vaultQueryBy<TokenState>().states.filter { it.state.data.accountId.equals(bUuid1)}
+            val bUuidTokenStateinfo=proxy.vaultQueryBy<TokenState>().states.filter { it.state.data.fromAccountId.equals(bUuid1)}
             bUuidTokenStateinfo.forEach{tokenState:StateAndRef<TokenState> ->
                 val stateAmount = tokenState.state.data.amount
                 println("amount=$stateAmount")
@@ -178,7 +214,7 @@ class MainController(rpc: NodeRPCConnection) {
             val borrowerTokenBal= bUuidTokenStateinfo.get(bUuidTokenStateinfo.size-1).state.data.amount
             val bUuidLoanStateinfo=proxy.vaultQueryBy<LoanState>().states.filter { it.state.data.uuid.equals(bUuid1)}
             val bInitialLoanAmount= bUuidLoanStateinfo.get(0).state.data.loanAmount
-            ResponseEntity.status(HttpStatus.CREATED).body("purchase:${purchase}+loanAmount:${bInitialLoanAmount}+avaBlance:${borrowerTokenBal}")
+            ResponseEntity.status(HttpStatus.CREATED).body("purchase:yes+loanAmount:${bInitialLoanAmount}+avaBlance:${borrowerTokenBal}")
         } catch (ex: Throwable) {
             logger.error(ex.message, ex)
             ResponseEntity.badRequest().body(ex.message!!)
@@ -189,34 +225,43 @@ class MainController(rpc: NodeRPCConnection) {
         // 2. get name of the borrower
         // 3. Purchase amount
 
-        /*finally {
+        /*
+        finally {
             try {
                 val bIdentityStateinfo=proxy.vaultQueryBy<IdentityState>().states.filter {it.state.data.uuid.equals(bUuid1)}
                 val borrowrName = bIdentityStateinfo.get(0).state.data.name
                 val mIdentityStateinfo=proxy.vaultQueryBy<IdentityState>().states.filter {it.state.data.uuid.equals(mUuid1)}
+                println("Merchan Identity State : ${mIdentityStateinfo}")
+                println("M FCM Token : ${mIdentityStateinfo.get(mIdentityStateinfo.size-1).state.data.fcmToken}")
                 val mFcmToken = mIdentityStateinfo.get(0).state.data.fcmToken
-                @todo the above 2 lines are resulting in exception; they are execpted to retrieve FCM Token of the merchant from identity state
+                //@todo the above 2 lines are resulting in exception; they are execpted to retrieve FCM Token of the merchant from identity state
 
+                val mFcmToken = PostRequest().tokenRequest(mUuid, "m")
 
                 println("FCM Borrower: {$borrowrName}")
                 println("FCM Token: {$mFcmToken}")
-                println("Merchant FCM Token: {${mIdentityStateinfo.get(0).state.data.fcmToken}}")
-                println("Merchant FCM Token: {${mIdentityStateinfo.get(0).state.data.fcmToken}}")
-                /*
+
+
                 var message = Message.builder()
                         .putData("borrower", bIdentityStateinfo.get(0).state.data.name)
                         .putData("tokens", purchaseAmt.toString())
-                        .setToken(mIdentityStateinfo.get(0).state.data.mobileToken)
+                        .setToken(mFcmToken)
                         .build()
                 var response = FirebaseMessaging.getInstance().send(message)
                 println("FCM response: {$response}")
-                 */
+
             } catch (e: FirebaseMessagingException){
                 logger.error(e.message, e)
             }
+
+
         }
+
          */
+
     }
+
+
 
     /**
      * Dashboard
@@ -227,40 +272,28 @@ class MainController(rpc: NodeRPCConnection) {
         val uuid = request.getParameter("uuid")
         val Uuid1 = UUID.fromString(uuid)
         val type = request.getParameter("type")
+
         if (uuid == null) {
             return ResponseEntity.badRequest().body("Query parameter 'uuid' must not be null.\n")
         }
+        var result:String? = null
         if (type == null) {
             return ResponseEntity.badRequest().body("Query parameter 'type' must not be null.\n")
         }
-        val mIdentityStateinfo=proxy.vaultQueryBy<IdentityState>().states.filter {it.state.data.uuid.equals(Uuid1)}
-        val bIdentityStateinfo=proxy.vaultQueryBy<IdentityState>().states.filter {it.state.data.uuid.equals(Uuid1)}
-        val bTokenStateinfo=proxy.vaultQueryBy<TokenState>().states.filter {it.state.data.accountId.equals(Uuid1)}
-        val bLoanStateinfo=proxy.vaultQueryBy<LoanState>().states.filter {it.state.data.uuid.equals(Uuid1)}
-        val result=if(type.equals('m')) "mName:${mIdentityStateinfo.get(0).state.data.name}+tokenBalance:${75000}" else  "name:${bIdentityStateinfo.get(bIdentityStateinfo.size-1).state.data.name}+loanAmount:${bLoanStateinfo.get(0).state.data.loanAmount}+avaBlance:${bTokenStateinfo.get(bTokenStateinfo.size-1).state.data.amount}"
-        return ResponseEntity.ok(result)
-    }
 
-
-    /**
-     * FCM Token update and check if there is a new build
-     */
-    @PostMapping(value= ["fcmUpdate"], produces = [MediaType.APPLICATION_JSON_VALUE])
-    fun fcmUpdate(request: HttpServletRequest): ResponseEntity<String>{
-        val uuid = request.getParameter("uuid")
-        val fcmToken = request.getParameter("fcmToken")
-        var updated: String = "no"
-        return try{
-            val identityStateinfo = proxy.vaultQueryBy<IdentityState>().states.filter {it.state.data.uuid.equals(uuid)}
-            if(identityStateinfo.isNotEmpty()){
-                // @todo Hanuman - update identity state with the new fcmToken
-                updated = "yes"
-            }
-            ResponseEntity.status(HttpStatus.CREATED).body("updated:{$updated}")
-        }catch (ex: Throwable){
-            logger.error(ex.message, ex)
-            ResponseEntity.badRequest().body(ex.message!!)
+        if(type.equals("m")){
+            val mIdentityStateinfo=proxy.vaultQueryBy<IdentityState>().states.filter {it.state.data.uuid.equals(Uuid1)}
+            val mTokenStateinfo=proxy.vaultQueryBy<TokenState>().states.filter {it.state.data.toAccountId.equals(Uuid1)}
+            result = "name:${mIdentityStateinfo.get(0).state.data.name}+tokenBalance:${mTokenStateinfo.get(mTokenStateinfo.size-1).state.data.amount}"
         }
+        if(type.equals("b")) {
+            val bIdentityStateinfo = proxy.vaultQueryBy<IdentityState>().states.filter { it.state.data.uuid.equals(Uuid1) }
+            val bTokenStateinfo = proxy.vaultQueryBy<TokenState>().states.filter { it.state.data.fromAccountId.equals(Uuid1) }
+            val bLoanStateinfo = proxy.vaultQueryBy<LoanState>().states.filter { it.state.data.uuid.equals(Uuid1) }
+            result="name:${bIdentityStateinfo.get(bIdentityStateinfo.size-1).state.data.name}+loanAmount:${bLoanStateinfo.get(0).state.data.loanAmount}+avaBlance:${bTokenStateinfo.get(bTokenStateinfo.size-1).state.data.amount}"
+        }
+        //result=if(type.equals('m')) "mName:${mIdentityStateinfo.get(0).state.data.name}+tokenBalance:${75000}" else  "name:${bIdentityStateinfo.get(bIdentityStateinfo.size-1).state.data.name}+loanAmount:${bLoanStateinfo.get(0).state.data.loanAmount}+avaBlance:${bTokenStateinfo.get(bTokenStateinfo.size-1).state.data.amount}"
+        return ResponseEntity.ok(result)
     }
 
 
@@ -274,7 +307,6 @@ class MainController(rpc: NodeRPCConnection) {
         // val mobileToken = request.getParameter("mobileToken")
         val imei = request.getParameter("imei")
         val type = request.getParameter("type")
-        //val fmToken = "notrequired"
         if (name == null) {
             return ResponseEntity.badRequest().body("Query parameter 'name' must not be null.\n")
         }
@@ -308,14 +340,15 @@ class MainController(rpc: NodeRPCConnection) {
         val uuid1 = UUID.fromString(uuid)
         val amtToPay = request.getParameter("amtToPay").toInt()
         val cardNumber = request.getParameter("cardNumber").toInt()
-       // val lbUUID = request.getParameter("lbUUID")
-     //   val lbUUID1 = UUID.fromString(lbUUID)
+        // val lbUUID = request.getParameter("lbUUID")
+        //   val lbUUID1 = UUID.fromString(lbUUID)
         val currentDirectory = System.getProperty("user.dir")
         val fis = FileInputStream(currentDirectory + "/src/main/resources/lbuuid.properties")
         val properties = Properties()
         properties.load(fis)
         val lbUUID =  properties.getProperty("lbuuid")
         val lbUUID1 = UUID.fromString(lbUUID)
+        fis.close()
         if (uuid == null) {
             return ResponseEntity.badRequest().body("Query parameter 'uuid' must not be null.\n")
         }
@@ -391,4 +424,200 @@ class MainController(rpc: NodeRPCConnection) {
             }
         }
     }
+
+    /**
+     * pay-loan-merchant
+     */
+    @PostMapping(value = ["payLoanMerchant"], produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun payLoanMerchant(request: HttpServletRequest): ResponseEntity<String> {
+        val bUUID = request.getParameter("bUUID")
+        val bUUID1 = UUID.fromString(bUUID)
+        val mUUID = request.getParameter("mUUID")
+        val mUUID1 = UUID.fromString(mUUID)
+        val amtToPay = request.getParameter("amtToPay").toInt()
+
+        // val lbUUID = request.getParameter("lbUUID")
+        //   val lbUUID1 = UUID.fromString(lbUUID)
+        val currentDirectory = System.getProperty("user.dir")
+        val fis = FileInputStream(currentDirectory + "/src/main/resources/lbuuid.properties")
+        val properties = Properties()
+        properties.load(fis)
+        val lbUUID =  properties.getProperty("lbuuid")
+        val lbUUID1 = UUID.fromString(lbUUID)
+        fis.close()
+        if (bUUID == null) {
+            return ResponseEntity.badRequest().body("Query parameter 'bUUID' must not be null.\n")
+        }
+        if (mUUID1 == null) {
+            return ResponseEntity.badRequest().body("Query parameter 'mUUID1' must not be null.\n")
+        }
+        if (lbUUID == null) {
+            return ResponseEntity.badRequest().body("Query parameter 'lbUUID' must not be null.\n")
+        }
+        if (amtToPay <= 0) {
+            return ResponseEntity.badRequest().body("Query parameter ' amtToPay' must be non-negative..\n")
+        }
+
+        return try {
+            val payment = proxy.startTrackedFlow(::PayLoanDirectThroughMerchantFlow, bUUID1,mUUID1,lbUUID1, amtToPay).returnValue.get()
+            val mIdentityStateinfo=proxy.vaultQueryBy<IdentityState>().states.filter {it.state.data.uuid.equals(mUUID1)}
+
+            val mTokenStateinfo=proxy.vaultQueryBy<TokenState>().states.filter {it.state.data.toAccountId.equals(mUUID1)}
+
+           // println("balance:${mTokenStateinfo.get(mTokenStateinfo.size-1).state.data.amount}")
+
+            ResponseEntity.status(HttpStatus.CREATED).body("payment:${payment}+balance:${mTokenStateinfo.get(mTokenStateinfo.size-1).state.data.amount}")
+        } catch (ex: Throwable) {
+            logger.error(ex.message, ex)
+            ResponseEntity.badRequest().body(ex.message!!)
+        }
+
+    }
+s
+
+
+
+    /**
+     * deductLoan
+     */
+    @PostMapping(value = ["deductLoan"], produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun deductLoan(request: HttpServletRequest): ResponseEntity<String> {
+        val bUUID = request.getParameter("bUUID")
+        val bUUID1 = UUID.fromString(bUUID)
+        // val mUUID = request.getParameter("mUUID")
+        // val mUUID1 = UUID.fromString(mUUID)
+        val amtToPay = request.getParameter("amtToPay").toInt()
+
+        // val lbUUID = request.getParameter("lbUUID")
+        //   val lbUUID1 = UUID.fromString(lbUUID)
+        //  val currentDirectory = System.getProperty("user.dir")
+        //   val fis = FileInputStream(currentDirectory + "/src/main/resources/lbuuid.properties")
+        //  val properties = Properties()
+        //  properties.load(fis)
+        //  val lbUUID =  properties.getProperty("lbuuid")
+        //  val lbUUID1 = UUID.fromString(lbUUID)
+        if (bUUID == null) {
+            return ResponseEntity.badRequest().body("Query parameter 'bUUID' must not be null.\n")
+        }
+        /*if (mUUID1 == null) {
+            return ResponseEntity.badRequest().body("Query parameter 'mUUID1' must not be null.\n")
+        }*/
+        /*if (lbUUID == null) {
+            return ResponseEntity.badRequest().body("Query parameter 'lbUUID' must not be null.\n")
+        }*/
+        if (amtToPay <= 0) {
+            return ResponseEntity.badRequest().body("Query parameter ' amtToPay' must be non-negative..\n")
+        }
+
+        return try {
+            val payment = proxy.startTrackedFlow(::DeductLoanAmountFlow, bUUID1, amtToPay).returnValue.get()
+            // val mIdentityStateinfo=proxy.vaultQueryBy<IdentityState>().states.filter {it.state.data.uuid.equals(mUUID1)}
+
+            //val mTokenStateinfo=proxy.vaultQueryBy<TokenState>().states.filter {it.state.data.accountId.equals(mUUID1)}
+
+            // println("balance:${mTokenStateinfo.get(mTokenStateinfo.size-1).state.data.amount}")
+
+            ResponseEntity.status(HttpStatus.CREATED).body("deducted")
+        } catch (ex: Throwable) {
+            logger.error(ex.message, ex)
+            ResponseEntity.badRequest().body(ex.message!!)
+        }
+
+    }
+
+
+
+    /**
+     * AddTokensToMerchantFlow
+     */
+    @PostMapping(value = ["addTokens"], produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun addTokens(request: HttpServletRequest): ResponseEntity<String> {
+        val mUUID = request.getParameter("mUUID")
+        val mUUID1 = UUID.fromString(mUUID)
+        // val mUUID = request.getParameter("mUUID")
+        // val mUUID1 = UUID.fromString(mUUID)
+        val amtToPay = request.getParameter("amtToPay").toInt()
+
+        // val lbUUID = request.getParameter("lbUUID")
+        //   val lbUUID1 = UUID.fromString(lbUUID)
+        //  val currentDirectory = System.getProperty("user.dir")
+        //   val fis = FileInputStream(currentDirectory + "/src/main/resources/lbuuid.properties")
+        //  val properties = Properties()
+        //  properties.load(fis)
+        //  val lbUUID =  properties.getProperty("lbuuid")
+        //  val lbUUID1 = UUID.fromString(lbUUID)
+        if (mUUID == null) {
+            return ResponseEntity.badRequest().body("Query parameter 'mUUID' must not be null.\n")
+        }
+        /*if (mUUID1 == null) {
+            return ResponseEntity.badRequest().body("Query parameter 'mUUID1' must not be null.\n")
+        }*/
+        /*if (lbUUID == null) {
+            return ResponseEntity.badRequest().body("Query parameter 'lbUUID' must not be null.\n")
+        }*/
+        if (amtToPay <= 0) {
+            return ResponseEntity.badRequest().body("Query parameter ' amtToPay' must be non-negative..\n")
+        }
+
+        return try {
+            val payment = proxy.startTrackedFlow(::AddTokensToMerchantFlow, mUUID1, amtToPay).returnValue.get()
+            // val mIdentityStateinfo=proxy.vaultQueryBy<IdentityState>().states.filter {it.state.data.uuid.equals(mUUID1)}
+
+            //val mTokenStateinfo=proxy.vaultQueryBy<TokenState>().states.filter {it.state.data.accountId.equals(mUUID1)}
+
+            // println("balance:${mTokenStateinfo.get(mTokenStateinfo.size-1).state.data.amount}")
+
+            ResponseEntity.status(HttpStatus.CREATED).body("deducted")
+        } catch (ex: Throwable) {
+            logger.error(ex.message, ex)
+            ResponseEntity.badRequest().body(ex.message!!)
+        }
+
+    }
+
+
+    /**
+     * exchangeToken
+     */
+    @PostMapping(value = ["exchange"], produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun exchangeToken(request: HttpServletRequest): ResponseEntity<String> {
+        val uuid = request.getParameter("uuid")
+        val uuid1 = UUID.fromString(uuid)
+        val tokensToExc = request.getParameter("tokensToExc").toInt()
+
+
+        val currentDirectory = System.getProperty("user.dir")
+        val fis = FileInputStream(currentDirectory + "/src/main/resources/lbuuid.properties")
+        val properties = Properties()
+        properties.load(fis)
+        val lbUUID =  properties.getProperty("lbuuid")
+        val lbUUID1 = UUID.fromString(lbUUID)
+        fis.close()
+        if (uuid == null) {
+            return ResponseEntity.badRequest().body("Query parameter 'uuid' must not be null.\n")
+        }
+        if (lbUUID == null) {
+            return ResponseEntity.badRequest().body("Query parameter 'lbUUID' must not be null.\n")
+        }
+        if (tokensToExc <= 0) {
+            return ResponseEntity.badRequest().body("Query parameter ' tokensToExc' must be non-negative..\n")
+        }
+
+        return try {
+            val purpose = proxy.startTrackedFlow(::ExchangeTokenFlow, uuid1, tokensToExc, lbUUID1).returnValue.get()
+            val mUuidTokenStateinfo=proxy.vaultQueryBy<TokenState>().states.filter { it.state.data.fromAccountId.equals(uuid1)}
+            mUuidTokenStateinfo.forEach{tokenState:StateAndRef<TokenState> ->
+                val stateAmount = tokenState.state.data.amount
+                println("amount=$stateAmount")
+            }
+            val mTokenBal= mUuidTokenStateinfo.get(mUuidTokenStateinfo.size-1).state.data.amount
+            // val bUuidLoanStateinfo=proxy.vaultQueryBy<LoanState>().states.filter { it.state.data.uuid.equals(bUuid1)}
+            // val bInitialLoanAmount= bUuidLoanStateinfo.get(0).state.data.loanAmount
+            ResponseEntity.status(HttpStatus.CREATED).body("exchange:${purpose}++avaTokenBalance:${mTokenBal}")
+        } catch (ex: Throwable) {
+            logger.error(ex.message, ex)
+            ResponseEntity.badRequest().body(ex.message!!)
+        }
+    }
+
 }
