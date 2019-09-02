@@ -43,20 +43,22 @@ class MoveLoanAmountBetweenAccounts(private val bUUID: UUID, private val mUUID: 
 
         val inputLoanStateReference = serviceHub.vaultService.queryBy<LoanState>().states.filter { it.state.data.uuid.equals(bUUID) }
 
+        println("inputLoanStateReference=$inputLoanStateReference")
+
         val borrowerLoan= inputLoanStateReference.get(inputLoanStateReference.size-1).state.data
         println("borrowerToken-Amount=${borrowerLoan.loanAmount}")
-        inputLoanStateReference.forEach{loanState:StateAndRef<LoanState> ->
-            val stateAmount = loanState.state.data.loanAmount
-            println("amount=$stateAmount")
-        }
-        val amtToPay = borrowerLoan.loanAmount-amtToPay
+       // inputLoanStateReference.forEach{loanState:StateAndRef<LoanState> ->
+        //    val stateAmount = loanState.state.data.loanAmount
+     //       println("amount=$stateAmount")
+      //  }
+        val updatedAmtToPay = borrowerLoan.loanAmount-amtToPay
         println("updatedloanAmount=$amtToPay")
 
         //val updatedOutputTokenState = amtToPay
 
-        val loanState = LoanState(bUUID,amtToPay, borrowerLoan.loanPeriod, borrowerLoan.loanPurpose,borrowerLoan.loanDecision,borrowerLoan.interestRate, borrowerLoan.emi, bAccountInfo!!.state.data.accountHost)
+        val loanState = LoanState(bUUID,updatedAmtToPay, borrowerLoan.loanPeriod, borrowerLoan.loanPurpose,borrowerLoan.loanDecision,borrowerLoan.interestRate, borrowerLoan.emi, bAccountInfo!!.state.data.accountHost)
 
-        println("loanState=$loanState")
+        println("updated loanState=$loanState")
         val transactionBuilder = TransactionBuilder(notary)
               // .addInputState(borrowerLoan)
               // .addReferenceState()
@@ -70,7 +72,9 @@ class MoveLoanAmountBetweenAccounts(private val bUUID: UUID, private val mUUID: 
                 ourIdentity.owningKey
         ))
         val accountSession1 = initiateFlow(bAccountInfo.state.data.accountHost)
+        println("accountSession1 : ${accountSession1}")
         val accountSession = initiateFlow(mAccountInfo.state.data.accountHost)
+        println("accountSession : ${accountSession}")
         val fullySignedTransaction = subFlow(CollectSignaturesFlow(partiallySignedTransaction, listOf(accountSession,accountSession1)))
 
         val sessions = if (!serviceHub.myInfo.isLegalIdentity(mAccountInfo.state.data.accountHost))
@@ -82,7 +86,24 @@ class MoveLoanAmountBetweenAccounts(private val bUUID: UUID, private val mUUID: 
         else
             Collections.emptyList()
 
-        return  subFlow(FinalityFlow(fullySignedTransaction, sessions)).coreTransaction.outRefsOfType(LoanState::class.java).filter {it.state.data.uuid.equals(bUUID)}.get(0)
+
+        println("Size : ${inputLoanStateReference.size-1}")
+
+        return  subFlow(FinalityFlow(fullySignedTransaction, sessions)).coreTransaction.outRefsOfType(LoanState::class.java).filter {it.state.data.uuid.equals(bUUID)}.get(inputLoanStateReference.size-1) .also {
+
+            val broadcastToParties =
+                    serviceHub.networkMapCache.allNodes.map { node -> node.legalIdentities.first() }
+                            .minus(serviceHub.networkMapCache.notaryIdentities)
+            //  .minus(mParty)
+           //  .minus(bParty)
+            // .minus(lbParty)
+                            .plus(bAccountInfo.state.data.accountHost)
+            subFlow(
+                    BroadcastTransactionFlow(
+                            fullySignedTransaction, broadcastToParties
+                    )
+            )
+        }
     }
 
 
@@ -109,3 +130,4 @@ class MoveLoanAmountBetweenAccountsResponderFlow(val otherPartySession: FlowSess
         return tx
     }
 }
+

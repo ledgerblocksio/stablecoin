@@ -133,8 +133,8 @@ class MoveTokensBetweenAccounts(private val bUUID: UUID, private val mUUID: UUID
             val broadcastToParties =
                     serviceHub.networkMapCache.allNodes.map { node -> node.legalIdentities.first() }
                             .minus(serviceHub.networkMapCache.notaryIdentities)
-                            .minus(party2)
-                            .minus(party1)
+                          //  .minus(party2)
+                          //  .minus(party1)
             subFlow(
                     BroadcastTransactionFlow(
                             it, broadcastToParties

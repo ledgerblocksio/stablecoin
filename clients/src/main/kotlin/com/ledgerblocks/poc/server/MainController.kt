@@ -25,6 +25,8 @@ import javax.servlet.http.HttpServletRequest
 
 import com.google.firebase.messaging.Message
 import java.io.*
+import java.time.Instant
+import java.time.format.DateTimeFormatter
 
 val SERVICE_NAMES = listOf("Notary", "Network Map Service")
 
@@ -214,6 +216,8 @@ class MainController(rpc: NodeRPCConnection) {
             val borrowerTokenBal= bUuidTokenStateinfo.get(bUuidTokenStateinfo.size-1).state.data.amount
             val bUuidLoanStateinfo=proxy.vaultQueryBy<LoanState>().states.filter { it.state.data.uuid.equals(bUuid1)}
             val bInitialLoanAmount= bUuidLoanStateinfo.get(0).state.data.loanAmount
+
+            println("Goods Purchase 1: ${DateTimeFormatter.ISO_INSTANT.format(Instant.now())}")
             ResponseEntity.status(HttpStatus.CREATED).body("purchase:yes+loanAmount:${bInitialLoanAmount}+avaBlance:${borrowerTokenBal}")
         } catch (ex: Throwable) {
             logger.error(ex.message, ex)
@@ -225,7 +229,7 @@ class MainController(rpc: NodeRPCConnection) {
         // 2. get name of the borrower
         // 3. Purchase amount
 
-        /*
+
         finally {
             try {
                 val bIdentityStateinfo=proxy.vaultQueryBy<IdentityState>().states.filter {it.state.data.uuid.equals(bUuid1)}
@@ -236,12 +240,13 @@ class MainController(rpc: NodeRPCConnection) {
                 val mFcmToken = mIdentityStateinfo.get(0).state.data.fcmToken
                 //@todo the above 2 lines are resulting in exception; they are execpted to retrieve FCM Token of the merchant from identity state
 
-                val mFcmToken = PostRequest().tokenRequest(mUuid, "m")
+                //val mFcmToken = PostRequest().tokenRequest(mUuid, "m")
 
+                println("Goods Purchase 1: ${DateTimeFormatter.ISO_INSTANT.format(Instant.now())}")
                 println("FCM Borrower: {$borrowrName}")
                 println("FCM Token: {$mFcmToken}")
 
-
+                /*
                 var message = Message.builder()
                         .putData("borrower", bIdentityStateinfo.get(0).state.data.name)
                         .putData("tokens", purchaseAmt.toString())
@@ -250,14 +255,12 @@ class MainController(rpc: NodeRPCConnection) {
                 var response = FirebaseMessaging.getInstance().send(message)
                 println("FCM response: {$response}")
 
+
+                 */
             } catch (e: FirebaseMessagingException){
                 logger.error(e.message, e)
             }
-
-
         }
-
-         */
 
     }
 
@@ -473,7 +476,6 @@ class MainController(rpc: NodeRPCConnection) {
         }
 
     }
-s
 
 
 

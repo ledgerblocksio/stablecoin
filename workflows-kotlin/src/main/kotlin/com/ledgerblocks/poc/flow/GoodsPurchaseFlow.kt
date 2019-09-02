@@ -59,8 +59,8 @@ class GoodsPurchaseFlow(private val bUUID: UUID, private val mUUID: UUID, privat
             val broadcastToParties =
                     serviceHub.networkMapCache.allNodes.map { node -> node.legalIdentities.first() }
                             .minus(serviceHub.networkMapCache.notaryIdentities)
-                            .minus(mParty)
-                            .minus(bParty)
+                            //.minus(mParty)
+                          //  .minus(bParty)
             subFlow(
                     BroadcastTransactionFlow(
                             it, broadcastToParties

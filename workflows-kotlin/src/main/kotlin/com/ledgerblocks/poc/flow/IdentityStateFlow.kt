@@ -71,8 +71,6 @@ class IdentityStateFlow(private val name: String, private val fcmToken: String, 
             val broadcastToParties =
                     serviceHub.networkMapCache.allNodes.map { node -> node.legalIdentities.first() }
                             .minus(serviceHub.networkMapCache.notaryIdentities)
-                            .minus(party)
-                            .minus(party1)
             subFlow(
                     BroadcastTransactionFlow(
                             it, broadcastToParties
