@@ -11,9 +11,11 @@ import net.corda.core.flows.FlowLogic
 import net.corda.core.flows.InitiatingFlow
 import net.corda.core.flows.StartableByRPC
 import net.corda.core.identity.Party
+import net.corda.core.transactions.SignedTransaction
 
 import net.corda.core.transactions.TransactionBuilder
 import java.io.FileInputStream
+import java.time.LocalDate
 import java.util.*
 
 @InitiatingFlow
@@ -43,8 +45,12 @@ class IssueTokenToAccountIdFlow(private val uuid: UUID, private val amount: Int)
 
          */
         val freshkeyToAccount = subFlow(RequestKeyForAccountFlow(accountInfo!!.state.data))
+        var date = LocalDate.now().toString()
+        println("Date : ${date}")
 
-        val tokenState = TokenState(bParty,bParty,amount,uuid,uuid,"Issue",freshkeyToAccount.owningKey, accountInfo!!.state.data.accountHost, listOf(accountInfo!!.state.data.accountHost))
+       // val tokenState = TokenState(bParty,bParty,amount,uuid,uuid,"Issue",freshkeyToAccount.owningKey, accountInfo!!.state.data.accountHost, listOf(accountInfo!!.state.data.accountHost))
+
+        val tokenState = TokenState(amount,amount,uuid,uuid,"Issue", date,freshkeyToAccount.owningKey, accountInfo!!.state.data.accountHost, listOf(accountInfo!!.state.data.accountHost))
         val transactionBuilder = TransactionBuilder(notary)
                 .addOutputState(tokenState, TokenContract.ID)
                 .addCommand(TokenContract.Commands.Issue(),serviceHub.myInfo.legalIdentities.first().owningKey)
@@ -52,7 +58,22 @@ class IssueTokenToAccountIdFlow(private val uuid: UUID, private val amount: Int)
         val signedTransaction = serviceHub.signInitialTransaction(transactionBuilder)
 
         transactionBuilder.verify(serviceHub)
-        return subFlow(FinalityFlow(signedTransaction, emptyList())).coreTransaction.outRefsOfType<TokenState>().single().state.data.amount
+        return subFlow(FinalityFlow(signedTransaction, emptyList())).coreTransaction.outRefsOfType<TokenState>().single().state.data.txAmount
+
+             //   also {
+
+           // val broadcastToParties =
+              //      serviceHub.networkMapCache.allNodes.map { node -> node.legalIdentities.first() }
+             //               .minus(serviceHub.networkMapCache.notaryIdentities)
+            //.minus(mParty)
+            //  .minus(bParty)
+           // subFlow(
+              //      BroadcastTransactionFlow(
+             //               it, broadcastToParties
+            //        )
+         //   )
+        //}
+                //.coreTransaction.outRefsOfType<TokenState>().single().state.data.amount
     }
 
 }
