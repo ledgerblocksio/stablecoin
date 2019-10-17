@@ -36,8 +36,12 @@ class PayLoanDirectThroughMerchantFlow(private val bUUID: UUID, private val mUUI
 
       //  requestDeductLoan(bUUID,amtToPay1)
       //  subFlow(AddTokensToMerchantFlow(bUUID,mUUID,amtToPay1))
-        val mTokenStateinfo=serviceHub.vaultService.queryBy<TokenState>().states.filter { it.state.data.toAccountId!!.equals(mUUID)}
+        val mTokenStateinfo=serviceHub.vaultService.queryBy<TokenState>().states.filter { it.state.data.toAccountId!!.equals(mUUID)||it.state.data.fromAccountId!!.equals(mUUID)}
+        println("mTokenStateinfo=$mTokenStateinfo")
         val mTokenBal = mTokenStateinfo.get(mTokenStateinfo.size-1).state.data.tokenBalance
+
+        println("mTokenBal=$mTokenBal")
+
         val lbAccountInfo = accountService.accountInfo(lbUUID)
 
         println("lbAccountInfo=$lbAccountInfo")
