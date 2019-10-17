@@ -728,7 +728,13 @@ val merchantTokenBalance=mTokenStateinfo.get(mTokenStateinfo.size-1).state.data.
     fun exchangeToken(request: HttpServletRequest): ResponseEntity<String> {
         val uuid = request.getParameter("uuid")
         val uuid1 = UUID.fromString(uuid)
-        val lbUUID = request.getParameter("lbUUID")
+        //val lbUUID = request.getParameter("lbUUID")
+        //val lbUUID1 = UUID.fromString(lbUUID)
+        val currentDirectory = System.getProperty("user.dir")
+        val fis = FileInputStream(currentDirectory + "/src/main/resources/lbuuid.properties")
+        val properties = Properties()
+        properties.load(fis)
+        val lbUUID =  properties.getProperty("lbuuid")
         val lbUUID1 = UUID.fromString(lbUUID)
         val tokensToExc = request.getParameter("tokensToExc").toInt()
 
