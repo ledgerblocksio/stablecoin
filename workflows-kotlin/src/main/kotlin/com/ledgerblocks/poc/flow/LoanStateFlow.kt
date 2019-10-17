@@ -20,10 +20,10 @@ import java.util.*
 
 @InitiatingFlow
 @StartableByRPC
-class LoanStateFlow(private val uuid: UUID, private val loanAmount: Int,private val loanPeriod: Int,private val interestRate: Int,private val emi: Int,private val loanPurpose: String): FlowLogic<String>(){
+class LoanStateFlow(private val uuid: UUID, private val loanAmount: Int,private val loanPeriod: Int,private val interestRate: Int,private val emi: Int,private val loanPurpose: String): FlowLogic<SignedTransaction>(){
 
     @Suspendable
-    override fun call(): String {
+    override fun call(): SignedTransaction {
 
 
         val notary = serviceHub.networkMapCache.notaryIdentities.first()
@@ -50,35 +50,25 @@ class LoanStateFlow(private val uuid: UUID, private val loanAmount: Int,private 
         val signedTransaction = serviceHub.signInitialTransaction(transactionBuilder)
         transactionBuilder.verify(serviceHub)
         println("test=$loanDecision")
-        var  party1 = "O=PartyA,L=London,C=GB"
-        var  party2 = "O=PartyB,L=New York,C=US"
-        var  party3 = "O=PartyC,L=Paris,C=FR"
-
-        val x500Name = CordaX500Name.parse(party1)
-        val bParty= serviceHub.networkMapCache.getPeerByLegalName(x500Name)!!
-
-        val x500Name1 = CordaX500Name.parse(party2)
-        val mParty= serviceHub.networkMapCache.getPeerByLegalName(x500Name1)!!
-
-        val x500Name2 = CordaX500Name.parse(party3)
-        val lbParty= serviceHub.networkMapCache.getPeerByLegalName(x500Name2)!!
 
 
 
-        return subFlow(FinalityFlow(signedTransaction, emptyList())).coreTransaction.outRefsOfType<LoanState>().single().state.data.loanDecision/*also {
+
+        return subFlow(FinalityFlow(signedTransaction, emptyList()))//.coreTransaction.outRefsOfType<LoanState>().single().state.data.loanDecision
+         .also {
 
             val broadcastToParties =
                     serviceHub.networkMapCache.allNodes.map { node -> node.legalIdentities.first() }
                             .minus(serviceHub.networkMapCache.notaryIdentities)
-                            .minus(mParty)
-                            .minus(bParty)
-                            .minus(lbParty)
+                          //  .minus(mParty)
+                           // .minus(bParty)
+                           // .minus(lbParty)
             subFlow(
                     BroadcastTransactionFlow(
                             it, broadcastToParties
                     )
             )
-        }*/
+        }
 
 
 
