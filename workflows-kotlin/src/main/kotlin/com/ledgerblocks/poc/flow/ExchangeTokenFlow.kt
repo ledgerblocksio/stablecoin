@@ -13,6 +13,7 @@ import net.corda.core.flows.*
 import net.corda.core.node.services.queryBy
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.TransactionBuilder
+import java.time.LocalDate
 import java.util.*
 @InitiatingFlow
 @StartableByRPC
@@ -20,10 +21,10 @@ class ExchangeTokenFlow(private val uuid: UUID, private val tokensToExc: Int, pr
     @Suspendable
     override fun call(): String {
         val notary = serviceHub.networkMapCache.notaryIdentities.first()
-        val mUuidTokenStateinfo=serviceHub.vaultService.queryBy<TokenState>().states.filter {it.state.data.toAccountId.equals(uuid)}
+        val mUuidTokenStateinfo=serviceHub.vaultService.queryBy<TokenState>().states.filter { it.state.data.toAccountId!!.equals(uuid)}
         //for(i in 1..bUuidTokenStateinfo.size) {
         println("mUuidTokenStateinfo=$mUuidTokenStateinfo")
-        val mTokenBal = mUuidTokenStateinfo.get(mUuidTokenStateinfo.size-1).state.data.amount
+        val mTokenBal = mUuidTokenStateinfo.get(mUuidTokenStateinfo.size-1).state.data.txAmount
 
         println("mTokenBal=$mTokenBal")
         //}
@@ -52,7 +53,9 @@ class ExchangeTokenFlow(private val uuid: UUID, private val tokensToExc: Int, pr
         //  val accountService = serviceHub.cordaService(KeyManagementBackedAccountService::class.java)
       //  val lbAccountInfo=accountService.accountInfo(lbUUID)
        // val purchaseState=PurchaseState(uuid,lbUUID,exchange, mAccountInfo!!.state.data.accountHost)
-        val tokenState = TokenState(mParty,mParty,updatedAmount,uuid,uuid,exchange,freshkeyToAccount.owningKey, mAccountInfo!!.state.data.accountHost, listOf(mAccountInfo!!.state.data.accountHost))
+        val tokenState = TokenState(updatedAmount,tokensToExc,uuid,lbUUID,"Exchange", LocalDate.now().toString(),freshkeyToAccount.owningKey, mAccountInfo!!.state.data.accountHost, listOf(mAccountInfo!!.state.data.accountHost))
+
+       // val tokenState = TokenState(mParty,mParty,updatedAmount,uuid,uuid,exchange,freshkeyToAccount.owningKey, mAccountInfo!!.state.data.accountHost, listOf(mAccountInfo!!.state.data.accountHost))
 
         val transactionBuilder = TransactionBuilder(notary)
                 //.addInputState(resultMoveTokenInfo!!.coreTransaction.outRefsOfType<TokenState>().single())
