@@ -13,12 +13,13 @@ import java.util.*
 
 @BelongsToContract(TokenContract::class)
 data class TokenState(
-        val sender: Party,
-        val recipient: Party,
-        val amount: Int,            // val tokenBalance: Int  val transTokens: Int
-        val fromAccountId: UUID,    // replaces accountID and refers to the entity holding tokens before the move/issue
-        val toAccountId: UUID,      // represents entity, who is getting tokens
+
+        val tokenBalance: Int, // val tokenBalance: Int  val transTokens: Int
+        val txAmount: Int,        //val amount of tokens transacted in transaction
+        val fromAccountId: UUID? =null,    // replaces accountID and refers to the entity holding tokens before the move/issue
+        val toAccountId: UUID? =null,      // represents entity, who is getting tokens
         val purpose:String,
+        val date: String,
         val owningKey: PublicKey? = null,
         override val owner: AbstractParty,
 
