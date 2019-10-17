@@ -83,7 +83,7 @@ class MainController(rpc: NodeRPCConnection) {
     @PostMapping(value = ["identity"], produces = [MediaType.APPLICATION_JSON_VALUE])
     fun createIdentity(request: HttpServletRequest): ResponseEntity<Any?> {
         val name = request.getParameter("name")
-        val mobileToken = request.getParameter("mobileToken")
+        val mobileToken = request.getParameter("fcmToken")
         val imei = request.getParameter("imei").toString()
         val type = request.getParameter("type")
         //val currentDirectory = System.getProperty("user.dir")
@@ -235,7 +235,7 @@ class MainController(rpc: NodeRPCConnection) {
             val borrowerTokenBal= bUuidTokenStateinfo.get(bUuidTokenStateinfo.size-1).state.data.tokenBalance
             val bUuidLoanStateinfo=proxy.vaultQueryBy<LoanState>().states.filter { it.state.data.uuid.equals(bUuid1)}
             val bInitialLoanAmount= bUuidLoanStateinfo.get(0).state.data.loanAmount
-            ResponseEntity.status(HttpStatus.CREATED).body("purchase:${purchaseValue}+loanAmount:${bInitialLoanAmount}+avaBlance:${borrowerTokenBal}")
+            ResponseEntity.status(HttpStatus.CREATED).body("purchase:yes+loanAmount:${bInitialLoanAmount}+avaBlance:${borrowerTokenBal}")
         } catch (ex: Throwable) {
             logger.error(ex.message, ex)
             ResponseEntity.badRequest().body(ex.message!!)
@@ -349,7 +349,7 @@ class MainController(rpc: NodeRPCConnection) {
                 var amount = it.state.data.txAmount*-1
                 if(mUUID!!.equals(Uuid1)) {
                     println("Subsidy")
-                    mName = "Subsidy"
+                    mName = "Loan"
                     amount = amount*-1
                 }
 
@@ -607,7 +607,7 @@ class MainController(rpc: NodeRPCConnection) {
 val merchantTokenBalance=mTokenStateinfo.get(mTokenStateinfo.size-1).state.data.tokenBalance
             println("balance:${mTokenStateinfo.get(mTokenStateinfo.size-1).state.data.txAmount}")
 
-            ResponseEntity.status(HttpStatus.CREATED).body("payment:${paymentValue}+merchantTokenBalance:${merchantTokenBalance}")
+            ResponseEntity.status(HttpStatus.CREATED).body("payment:${paymentValue}+balance:${merchantTokenBalance}")
         } catch (ex: Throwable) {
             logger.error(ex.message, ex)
             ResponseEntity.badRequest().body(ex.message!!)
@@ -752,7 +752,7 @@ val merchantTokenBalance=mTokenStateinfo.get(mTokenStateinfo.size-1).state.data.
             val mTokenBal= mUuidTokenStateinfo.get(mUuidTokenStateinfo.size-1).state.data.tokenBalance
             // val bUuidLoanStateinfo=proxy.vaultQueryBy<LoanState>().states.filter { it.state.data.uuid.equals(bUuid1)}
             // val bInitialLoanAmount= bUuidLoanStateinfo.get(0).state.data.loanAmount
-            ResponseEntity.status(HttpStatus.CREATED).body("exchange:${purpose}++avaTokenBalance:${mTokenBal}")
+            ResponseEntity.status(HttpStatus.CREATED).body("exchange:success++avaTokenBalance:${mTokenBal}")
         } catch (ex: Throwable) {
             logger.error(ex.message, ex)
             ResponseEntity.badRequest().body(ex.message!!)
