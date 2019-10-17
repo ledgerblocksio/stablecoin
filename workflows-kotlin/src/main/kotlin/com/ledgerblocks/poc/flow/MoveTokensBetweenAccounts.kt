@@ -1,14 +1,15 @@
+/*
 package com.ledgerblocks.poc.flow
 
 import co.paralleluniverse.fibers.Suspendable
 import com.ledgerblocks.poc.contract.TokenContract
-import com.ledgerblocks.poc.state.IdentityState
+
 import com.ledgerblocks.poc.state.TokenState
 import net.corda.accounts.flows.RequestKeyForAccountFlow
 import net.corda.accounts.service.KeyManagementBackedAccountService
 import net.corda.core.contracts.StateAndRef
 import net.corda.core.flows.*
-import net.corda.core.identity.Party
+
 import net.corda.core.node.services.queryBy
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.TransactionBuilder
@@ -92,11 +93,13 @@ class MoveTokensBetweenAccounts(private val bUUID: UUID, private val mUUID: UUID
 
         // val inputTokenState = inputTokenStateReference.state.data
         //println("m acc test =${inputTokenState.amount}")
-        /* val id = type+name + newImei
+        */
+/* val id = type+name + newImei
          val storedAccountInfo = accountService.accountInfo(id)
          val identityState = IdentityState(name, imei, storedAccountInfo!!.state.data.accountId, storedAccountInfo.state.data.accountHost)
 
- */
+ *//*
+
         // val tokenState = TokenState(sender,receiver,amount,uuid,freshkeyFormAccountInfo.owningKey, accountInfo!!.state.data.accountHost, listOf(accountInfo!!.state.data.accountHost))
         // val updatedInputTokenState = borrowerToken.copy(participants = listOf(mAccountInfo.state.data.accountHost), amount = borrowerToken.amount - purchaseAmount,sender = sender,recipient = receiver,accountId = mUUID,owner = receiver,owningKey = freshkeyFormAccountInfo.owningKey)
         val updatedInputTokenState = borrowerToken.copy(participants = listOf(accountInfo1.state.data.accountHost), amount = borrowerToken.amount - purchaseAmount)
@@ -166,4 +169,4 @@ class MoveTokensBetweenAccountsResponderFlow(val otherPartySession: FlowSession)
         logger.info("Received transaction from finality")
         return tx
     }
-}
+}*/
