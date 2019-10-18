@@ -20,10 +20,11 @@ import java.util.*
 
 @InitiatingFlow
 @StartableByRPC
-class UpdateAccountInfoFlow(private val uuid: UUID, private val fcmToken: String): FlowLogic<SignedTransaction>(){
+class UpdateAccountInfoFlow(private val uuid: UUID, private val fcmToken: String): FlowLogic<String>(){
 
     @Suspendable
-    override fun call(): SignedTransaction {
+    override fun call(): String {
+        var update="no"
         val notary = serviceHub.networkMapCache.notaryIdentities.first()
 
 
@@ -32,22 +33,19 @@ class UpdateAccountInfoFlow(private val uuid: UUID, private val fcmToken: String
 
         val identityStates=serviceHub.vaultService.queryBy<IdentityState>().states.filter {it.state.data.uuid.equals(uuid)}
 
-        val  identityStateInfo =identityStates.get(0).state.data
+        if(identityStates.isNotEmpty()) {
 
-
-        // val newAccountCreation = accountService.createAccount(id)
-        val storedAccountInfo = accountService.accountInfo(uuid)
-
-
-
-        val identityState = IdentityState(identityStateInfo.name, fcmToken, identityStateInfo.imei, storedAccountInfo!!.state.data.accountId, identityStateInfo.host)
-        val transactionBuilder = TransactionBuilder(notary)
-                .addOutputState(identityState)
-                .addCommand(IdentityContract.OPEN,serviceHub.myInfo.legalIdentities.first().owningKey)
-        val signedTransaction = serviceHub.signInitialTransaction(transactionBuilder)
-        transactionBuilder.verify(serviceHub)
-
-        return subFlow(FinalityFlow(signedTransaction, emptyList()))
+            val identityStateInfo = identityStates.get(0).state.data
+            update="yes"
+            val storedAccountInfo = accountService.accountInfo(uuid)
+            val identityState = IdentityState(identityStateInfo.name, fcmToken, identityStateInfo.imei, storedAccountInfo!!.state.data.accountId, identityStateInfo.host)
+            val transactionBuilder = TransactionBuilder(notary)
+                    .addOutputState(identityState)
+                    .addCommand(IdentityContract.OPEN, serviceHub.myInfo.legalIdentities.first().owningKey)
+            val signedTransaction = serviceHub.signInitialTransaction(transactionBuilder)
+            transactionBuilder.verify(serviceHub)
+        }
+        return update
     }
 
 }

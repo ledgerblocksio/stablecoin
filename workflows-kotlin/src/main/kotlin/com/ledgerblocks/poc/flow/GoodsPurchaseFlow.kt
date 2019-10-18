@@ -72,7 +72,6 @@ class GoodsPurchaseFlow(private val bUUID: UUID, private val mUUID: UUID, privat
             println("updatedInputTokenState: ${updatedInputTokenState}")
             val updatedOutputTokenState = farmerToken.copy(participants = listOf(accountInfo2.state.data.accountHost), tokenBalance = mTokenBalance+purchaseAmount,fromAccountId = bUUID, toAccountId = mUUID,owner = party2,owningKey = freshkeyFormAccountInfo.owningKey, txAmount = purchaseAmount, purpose =purpose, date = date)
             val mOutputTokenState = farmerToken.copy(participants = listOf(accountInfo2.state.data.accountHost), tokenBalance = mTokenBalance+purchaseAmount, txAmount = purchaseAmount, fromAccountId = bUUID, toAccountId = mUUID, owningKey = freshkeyFormAccountInfo.owningKey, purpose = purpose)
-            //@todo tokenBalane this didnot work as expected ie tokenbalance did not sumup
             println("Farmer Updated Output Token State : ${updatedOutputTokenState}")
             println("Merchant Update Output Token State : ${mOutputTokenState}")
             val (command, updatedOwnerState) = updatedOutputTokenState.withNewOwner(freshkeyFormAccountInfo)
