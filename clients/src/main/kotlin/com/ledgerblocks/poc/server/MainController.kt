@@ -244,11 +244,11 @@ class MainController(rpc: NodeRPCConnection) {
     }
 
     /**
-     * Dashboard
+     * Transactions
      */
 
-    @GetMapping(value = ["dashboard"], produces = [MediaType.APPLICATION_JSON_VALUE])
-    fun dashBoardApi(request: HttpServletRequest): ResponseEntity<Any> {
+    @GetMapping(value = ["transactions"], produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun transactions(request: HttpServletRequest): ResponseEntity<Any> {
         val uuid = request.getParameter("uuid")
         val Uuid1 = UUID.fromString(uuid)
         val type = request.getParameter("type")
@@ -270,7 +270,7 @@ class MainController(rpc: NodeRPCConnection) {
 
             if(fTokenStateinfo.isNotEmpty()){
                 subsidy = (fTokenStateinfo.get(0).state.data.txAmount).toString()
-                response.put("subsidyAmt", subsidy)
+                response.put("Loan", subsidy)
                 val avalBalance = fTokenStateinfo.get(fTokenStateinfo.size-1).state.data.tokenBalance
                 response.put("avaBalance", avalBalance)
 
@@ -342,6 +342,58 @@ class MainController(rpc: NodeRPCConnection) {
 
 
     /**
+     * Dashboard
+     */
+
+    @GetMapping(value = ["dashboard"], produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun dashboardAPI(request: HttpServletRequest): ResponseEntity<Any> {
+
+
+
+        val uuid = request.getParameter("uuid")
+        //val Uuid1 = UUID.fromString(uuid)
+        val type = request.getParameter("type")
+        if (uuid == null) {
+            return ResponseEntity.badRequest().body("Query parameter 'uuid' must not be null.\n")
+        }
+        if (type == null) {
+            return ResponseEntity.badRequest().body("Query parameter 'type' must not be null.\n")
+        }
+        val response = JSONObject()
+        //val array = JSONArray()
+
+        if(type.equals("b")){
+            var tokenBalance=""
+            var loanAmt=""
+
+            val bTokenStateinfo=proxy.vaultQueryBy<TokenState>().states.filter { it.state.data.fromAccountId!!.equals(UUID.fromString(uuid))||it.state.data.toAccountId!!.equals(UUID.fromString(uuid))}
+            if(bTokenStateinfo.isNotEmpty()) {
+                //if{}
+                tokenBalance = (bTokenStateinfo.get(bTokenStateinfo.size-1).state.data.tokenBalance).toString()
+                response.put("Token Balance", tokenBalance)
+            }
+            val bLoanStateInfo=proxy.vaultQueryBy<LoanState>().states.filter { it.state.data.uuid!!.equals(UUID.fromString(uuid))}
+            if (bLoanStateInfo.isNotEmpty()){
+                loanAmt = (bLoanStateInfo.get(0).state.data.loanAmount).toString()
+                response.put("LoanAmt", loanAmt)
+            }
+
+        }
+        if (type.equals("m")){
+            var tokenBalance=""
+            val mTokenStateinfo=proxy.vaultQueryBy<TokenState>().states.filter { it.state.data.fromAccountId!!.equals(UUID.fromString(uuid))||it.state.data.toAccountId!!.equals(UUID.fromString(uuid))}
+            if(mTokenStateinfo.isNotEmpty()) {
+                tokenBalance = (mTokenStateinfo.get(mTokenStateinfo.size-1).state.data.tokenBalance).toString()
+                response.put("Token Balance", tokenBalance)
+            }
+        }
+        //response.put("dashboard", array)
+        return ResponseEntity.ok(response)
+    }
+
+
+
+        /**
      * lbUuid
      */
 
@@ -590,6 +642,10 @@ class MainController(rpc: NodeRPCConnection) {
     fun exchangeToken(request: HttpServletRequest): ResponseEntity<String> {
         val uuid = request.getParameter("uuid")
         val uuid1 = UUID.fromString(uuid)
+
+        //val lbUUID = request.getParameter("lbUUID")
+        //val lbUUID1 = UUID.fromString(lbUUID)
+
         val currentDirectory = System.getProperty("user.dir")
         val fis = FileInputStream(currentDirectory + "/src/main/resources/lbuuid.properties")
         val properties = Properties()
