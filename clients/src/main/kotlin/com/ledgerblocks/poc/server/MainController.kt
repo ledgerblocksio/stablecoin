@@ -55,11 +55,35 @@ class MainController(rpc: NodeRPCConnection) {
     /**
      * Displays all amounts states that exist in the node's vault.
      */
-    @GetMapping(value = ["identityStates"], produces = [MediaType.APPLICATION_JSON_VALUE])
-    fun getidentityStates(): ResponseEntity<List<StateAndRef<IdentityState>>> {
+    @GetMapping(value = ["identityStatesJSON"], produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun getidentityStatesJSON(): ResponseEntity<List<StateAndRef<IdentityState>>> {
         return ResponseEntity.ok(proxy.vaultQueryBy<IdentityState>().states)
     }
 
+    /**
+     * Displays all identity states that exist in the node's vault.
+     */
+    @GetMapping(value = ["identityStates"], produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun getidentityStates(): ResponseEntity<Any> {
+        var response = ""
+        proxy.vaultQueryBy<IdentityState>().states.forEach {
+            response = response + "Name: " + it.state.data.name + " FCM TOKEN: " + it.state.data.fcmToken + " UUID: " + it.state.data.uuid + "\n"
+        }
+        return ResponseEntity.ok("${response}")
+    }
+
+    /**
+     * Displays all token states that exist in the node's vault.
+     */
+    @GetMapping(value = ["tokenStates"], produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun gettokenStates(): ResponseEntity<Any> {
+        var response = ""
+        proxy.vaultQueryBy<TokenState>().states.forEach {
+            response = response + "From Acc: " + it.state.data.fromAccountId + " To Acc: "+ it.state.data.toAccountId + " Token balance : " + it.state.data.tokenBalance + " Tx Tokens: " + it.state.data.txAmount + "\n"
+        }
+
+        return ResponseEntity.ok("${response}")
+    }
 
     /**
      * Displays all amounts states that exist in the node's vault.
@@ -72,7 +96,7 @@ class MainController(rpc: NodeRPCConnection) {
     /**
      * Displays all amounts states that exist in the node's vault.
      */
-    @GetMapping(value = ["tokenStates"], produces = [MediaType.APPLICATION_JSON_VALUE])
+    @GetMapping(value = ["tokenStatesJSONd"], produces = [MediaType.APPLICATION_JSON_VALUE])
     fun getTokenStates(): ResponseEntity<List<StateAndRef<TokenState>>> {
         return ResponseEntity.ok(proxy.vaultQueryBy<TokenState>().states)
     }
@@ -674,7 +698,7 @@ class MainController(rpc: NodeRPCConnection) {
             val mTokenBal= mUuidTokenStateinfo.get(mUuidTokenStateinfo.size-1).state.data.tokenBalance
             // val bUuidLoanStateinfo=proxy.vaultQueryBy<LoanState>().states.filter { it.state.data.uuid.equals(bUuid1)}
             // val bInitialLoanAmount= bUuidLoanStateinfo.get(0).state.data.loanAmount
-            ResponseEntity.status(HttpStatus.CREATED).body("exchange:${purpose}++avaTokenBalance:${mTokenBal}")
+            ResponseEntity.status(HttpStatus.CREATED).body("exchange:success++avaTokenBalance:${mTokenBal}")
         } catch (ex: Throwable) {
             logger.error(ex.message, ex)
             ResponseEntity.badRequest().body(ex.message!!)

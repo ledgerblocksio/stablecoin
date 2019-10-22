@@ -29,11 +29,28 @@ class GoodsPurchaseFlow(private val bUUID: UUID, private val mUUID: UUID, privat
         val accountService = serviceHub.cordaService(KeyManagementBackedAccountService::class.java)
         val mAccountInfo=accountService.accountInfo(mUUID)
         val bInitialLoanAmount= bUuidLoanStateinfo.get(0).state.data.loanAmount
-        val mTokenStateInfo = serviceHub.vaultService.queryBy<TokenState>().states.filter { it.state.data.toAccountId!!.equals(mUUID)}
+        val mTokenStateInfo = serviceHub.vaultService.queryBy<TokenState>().states.filter { it.state.data.toAccountId!!.equals(mUUID) || it.state.data.fromAccountId!!.equals(mUUID)}
         var mTokenBalance =0
+    //    mTokenStateInfo.forEach(){
+    //        mTokenBalance+= it.state.data.txAmount
+    //    }
+    //    var mBalance=0
+    //    if(mTokenStateInfo.isNotEmpty())
+    //        mBalance = mTokenStateInfo!!.get(mTokenStateInfo.size-1).state.data.tokenBalance
+    //    println("Direct token balance: $mBalance")
         mTokenStateInfo.forEach(){
-            mTokenBalance+= it.state.data.txAmount
+            println("Merchant purpose: ${it.state.data.purpose}")
+            if(it.state.data.purpose.equals("Exchange")) {
+                println("M Token balance Exchange: ${it.state.data.txAmount}")
+                mTokenBalance += it.state.data.txAmount * -1
+            }
+            else {
+                println("M Token balance: ${it.state.data.txAmount}")
+                mTokenBalance += it.state.data.txAmount
+            }
+            println("Merchant Token Balance: ${mTokenBalance}")
         }
+
         // if(mTokenStateInfo.size>=1)
         //     mTokenBalance = mTokenStateInfo.get(mTokenStateInfo.size-1).state.data.tokenBalance
         val purpose="purchase"
@@ -72,8 +89,8 @@ class GoodsPurchaseFlow(private val bUUID: UUID, private val mUUID: UUID, privat
             println("updatedInputTokenState: ${updatedInputTokenState}")
             val updatedOutputTokenState = farmerToken.copy(participants = listOf(accountInfo2.state.data.accountHost), tokenBalance = mTokenBalance+purchaseAmount,fromAccountId = bUUID, toAccountId = mUUID,owner = party2,owningKey = freshkeyFormAccountInfo.owningKey, txAmount = purchaseAmount, purpose =purpose, date = date)
             val mOutputTokenState = farmerToken.copy(participants = listOf(accountInfo2.state.data.accountHost), tokenBalance = mTokenBalance+purchaseAmount, txAmount = purchaseAmount, fromAccountId = bUUID, toAccountId = mUUID, owningKey = freshkeyFormAccountInfo.owningKey, purpose = purpose)
-            println("Farmer Updated Output Token State : ${updatedOutputTokenState}")
-            println("Merchant Update Output Token State : ${mOutputTokenState}")
+            //println("Farmer Updated Output Token State : ${updatedOutputTokenState}")
+            //println("Merchant Update Output Token State : ${mOutputTokenState}")
             val (command, updatedOwnerState) = updatedOutputTokenState.withNewOwner(freshkeyFormAccountInfo)
             val transactionBuilder = TransactionBuilder(notary)
                     .addOutputState(updatedOwnerState, TokenContract.ID)

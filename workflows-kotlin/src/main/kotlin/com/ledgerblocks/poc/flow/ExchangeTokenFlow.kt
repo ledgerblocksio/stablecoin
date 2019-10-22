@@ -17,50 +17,49 @@ import java.time.LocalDate
 import java.util.*
 @InitiatingFlow
 @StartableByRPC
-class ExchangeTokenFlow(private val uuid: UUID, private val tokensToExc: Int, private val lbUUID: UUID): FlowLogic<String>(){
+class ExchangeTokenFlow(private val uuid: UUID, private val tokensToExc: Int, private val lbUUID: UUID): FlowLogic<SignedTransaction>(){
     @Suspendable
-    override fun call(): String {
+    override fun call(): SignedTransaction {
         val notary = serviceHub.networkMapCache.notaryIdentities.first()
-        val mUuidTokenStateinfo=serviceHub.vaultService.queryBy<TokenState>().states.filter { it.state.data.toAccountId!!.equals(uuid)}
+        val mUuidTokenStateinfo = serviceHub.vaultService.queryBy<TokenState>().states.filter { it.state.data.toAccountId!!.equals(uuid) }
         //for(i in 1..bUuidTokenStateinfo.size) {
         println("mUuidTokenStateinfo=$mUuidTokenStateinfo")
-        val mTokenBal = mUuidTokenStateinfo.get(mUuidTokenStateinfo.size-1).state.data.txAmount
+        val mTokenBal = mUuidTokenStateinfo.get(mUuidTokenStateinfo.size - 1).state.data.txAmount
 
         println("mTokenBal=$mTokenBal")
         //}
         // val bUuidLoanStateinfo=serviceHub.vaultService.queryBy<LoanState>().states.filter {it.state.data.uuid.equals(bUUID)  }
         val accountService = serviceHub.cordaService(KeyManagementBackedAccountService::class.java)
-        val mAccountInfo=accountService.accountInfo(uuid)
+        val mAccountInfo = accountService.accountInfo(uuid)
         val mParty = mAccountInfo!!.state.data.accountHost
         val freshkeyToAccount = subFlow(RequestKeyForAccountFlow(mAccountInfo!!.state.data))
         //  val bInitialLoanAmount= bUuidLoanStateinfo.get(0).state.data.loanAmount
-        val exchange:String
+        val exchange: String
         val updatedAmount: Int
         //var resultMoveTokenInfo:SignedTransaction ? = null
-        if(mTokenBal>=tokensToExc) {
+        if (mTokenBal >= tokensToExc) {
             exchange = "success"
-            updatedAmount=mTokenBal-tokensToExc
+            updatedAmount = mTokenBal - tokensToExc
 
-           // resultMoveTokenInfo=subFlow(MoveTokensBetweenAccounts(uuid,lbUUID,tokensToExc,"exchange"))
-        }
-        else {
+            // resultMoveTokenInfo=subFlow(MoveTokensBetweenAccounts(uuid,lbUUID,tokensToExc,"exchange"))
+        } else {
             exchange = "fail"
-            updatedAmount=mTokenBal
+            updatedAmount = mTokenBal
             // @todo why calling subflow here, when the condition fails
             //resultMoveTokenInfo=subFlow(MoveTokensBetweenAccounts(uuid,lbUUID,tokensToExc))
             //resultMoveTokenInfo=bUuidTokenStateinfo.get(0)
         }
         //  val accountService = serviceHub.cordaService(KeyManagementBackedAccountService::class.java)
-      //  val lbAccountInfo=accountService.accountInfo(lbUUID)
-       // val purchaseState=PurchaseState(uuid,lbUUID,exchange, mAccountInfo!!.state.data.accountHost)
-        val tokenState = TokenState(updatedAmount,tokensToExc,uuid,lbUUID,"Exchange", LocalDate.now().toString(),freshkeyToAccount.owningKey, mAccountInfo!!.state.data.accountHost, listOf(mAccountInfo!!.state.data.accountHost))
+        //  val lbAccountInfo=accountService.accountInfo(lbUUID)
+        // val purchaseState=PurchaseState(uuid,lbUUID,exchange, mAccountInfo!!.state.data.accountHost)
+        val tokenState = TokenState(updatedAmount, tokensToExc, uuid, lbUUID, "Exchange", LocalDate.now().toString(), freshkeyToAccount.owningKey, mAccountInfo!!.state.data.accountHost, listOf(mAccountInfo!!.state.data.accountHost))
 
-       // val tokenState = TokenState(mParty,mParty,updatedAmount,uuid,uuid,exchange,freshkeyToAccount.owningKey, mAccountInfo!!.state.data.accountHost, listOf(mAccountInfo!!.state.data.accountHost))
+        // val tokenState = TokenState(mParty,mParty,updatedAmount,uuid,uuid,exchange,freshkeyToAccount.owningKey, mAccountInfo!!.state.data.accountHost, listOf(mAccountInfo!!.state.data.accountHost))
 
         val transactionBuilder = TransactionBuilder(notary)
                 //.addInputState(resultMoveTokenInfo!!.coreTransaction.outRefsOfType<TokenState>().single())
                 .addOutputState(tokenState)
-                .addCommand(TokenContract.Commands.Exchange(),serviceHub.myInfo.legalIdentities.first().owningKey)
+                .addCommand(TokenContract.Commands.Exchange(), serviceHub.myInfo.legalIdentities.first().owningKey)
         val signedTransaction = serviceHub.signInitialTransaction(transactionBuilder)
         transactionBuilder.verify(serviceHub)
         val accountSession = initiateFlow(mAccountInfo!!.state.data.accountHost)
@@ -68,7 +67,20 @@ class ExchangeTokenFlow(private val uuid: UUID, private val tokensToExc: Int, pr
             Collections.singletonList(accountSession)
         else
             Collections.emptyList()
-        return subFlow(FinalityFlow(signedTransaction, sessions)).coreTransaction.outRefsOfType<TokenState>().single().state.data.purpose
+        //return subFlow(FinalityFlow(signedTransaction, sessions)).coreTransaction.outRefsOfType<TokenState>().single().state.data.purpose
+        return subFlow(FinalityFlow(signedTransaction, sessions)).also {
+
+            val broadcastToParties =
+                    serviceHub.networkMapCache.allNodes.map { node -> node.legalIdentities.first() }
+                            .minus(serviceHub.networkMapCache.notaryIdentities)
+            //.minus(mParty)
+            //  .minus(bParty)
+            subFlow(
+                    BroadcastTransactionFlow(
+                            it, broadcastToParties
+                    )
+            )
+        }
     }
 }
 @InitiatedBy(ExchangeTokenFlow::class)
