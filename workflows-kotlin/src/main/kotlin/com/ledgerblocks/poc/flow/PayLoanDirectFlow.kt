@@ -22,7 +22,7 @@ import java.util.*
 
 @InitiatingFlow
 @StartableByRPC//private val name: String
-class PayLoanDirectFlow(private val uuid: UUID, private val lbUUID: UUID, private val amtToPay: Int, private val cardNumber: Int): FlowLogic<SignedTransaction>(){
+class PayLoanDirectFlow(private val uuid: UUID, private val lbUUID: UUID, private val amtToPay: Int, private val cardNumber: String): FlowLogic<SignedTransaction>(){
 
     @Suspendable
     override fun call(): SignedTransaction {

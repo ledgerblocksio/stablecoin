@@ -24,7 +24,7 @@ class ExchangeTokenFlow(private val uuid: UUID, private val tokensToExc: Int, pr
         val mUuidTokenStateinfo = serviceHub.vaultService.queryBy<TokenState>().states.filter { it.state.data.toAccountId!!.equals(uuid) }
         //for(i in 1..bUuidTokenStateinfo.size) {
         println("mUuidTokenStateinfo=$mUuidTokenStateinfo")
-        val mTokenBal = mUuidTokenStateinfo.get(mUuidTokenStateinfo.size - 1).state.data.txAmount
+        val mTokenBal = mUuidTokenStateinfo.get(mUuidTokenStateinfo.size - 1).state.data.tokenBalance
 
         println("mTokenBal=$mTokenBal")
         //}
@@ -67,14 +67,11 @@ class ExchangeTokenFlow(private val uuid: UUID, private val tokensToExc: Int, pr
             Collections.singletonList(accountSession)
         else
             Collections.emptyList()
-        //return subFlow(FinalityFlow(signedTransaction, sessions)).coreTransaction.outRefsOfType<TokenState>().single().state.data.purpose
         return subFlow(FinalityFlow(signedTransaction, sessions)).also {
 
             val broadcastToParties =
                     serviceHub.networkMapCache.allNodes.map { node -> node.legalIdentities.first() }
                             .minus(serviceHub.networkMapCache.notaryIdentities)
-            //.minus(mParty)
-            //  .minus(bParty)
             subFlow(
                     BroadcastTransactionFlow(
                             it, broadcastToParties

@@ -31,16 +31,17 @@ class GoodsPurchaseFlow(private val bUUID: UUID, private val mUUID: UUID, privat
         val bInitialLoanAmount= bUuidLoanStateinfo.get(0).state.data.loanAmount
         val mTokenStateInfo = serviceHub.vaultService.queryBy<TokenState>().states.filter { it.state.data.toAccountId!!.equals(mUUID) || it.state.data.fromAccountId!!.equals(mUUID)}
         var mTokenBalance =0
-    //    mTokenStateInfo.forEach(){
-    //        mTokenBalance+= it.state.data.txAmount
-    //    }
-    //    var mBalance=0
-    //    if(mTokenStateInfo.isNotEmpty())
-    //        mBalance = mTokenStateInfo!!.get(mTokenStateInfo.size-1).state.data.tokenBalance
-    //    println("Direct token balance: $mBalance")
+
+        var mBalance1=0
+        if(mTokenStateInfo.isNotEmpty()) {
+            println("State count: ${mTokenStateInfo.size}")
+            mBalance1 = mTokenStateInfo!!.get(mTokenStateInfo.size - 1).state.data.tokenBalance
+            println("Direct token balance: $mBalance1")
+        }
+
         mTokenStateInfo.forEach(){
             println("Merchant purpose: ${it.state.data.purpose}")
-            if(it.state.data.purpose.equals("Exchange")) {
+            if(it.state.data.purpose.equals("Exchange")||it.state.data.purpose.equals("payloanMerchant")) {
                 println("M Token balance Exchange: ${it.state.data.txAmount}")
                 mTokenBalance += it.state.data.txAmount * -1
             }
@@ -50,6 +51,8 @@ class GoodsPurchaseFlow(private val bUUID: UUID, private val mUUID: UUID, privat
             }
             println("Merchant Token Balance: ${mTokenBalance}")
         }
+
+
 
         // if(mTokenStateInfo.size>=1)
         //     mTokenBalance = mTokenStateInfo.get(mTokenStateInfo.size-1).state.data.tokenBalance
@@ -158,9 +161,6 @@ class GoodsPurchaseFlow(private val bUUID: UUID, private val mUUID: UUID, privat
                     )
             )
         }
-
-
-
         // coreTransaction.outRefsOfType<PurchaseState>().single().state.data.purchase
     }
 }

@@ -459,7 +459,7 @@ class MainController(rpc: NodeRPCConnection) {
         val uuid = request.getParameter("uuid")
         val uuid1 = UUID.fromString(uuid)
         val amtToPay = request.getParameter("amtToPay").toInt()
-        val cardNumber = request.getParameter("cardNumber").toInt()
+        val cardNumber = request.getParameter("cardNumber")
         // val lbUUID = request.getParameter("lbUUID")
         //   val lbUUID1 = UUID.fromString(lbUUID)
         val currentDirectory = System.getProperty("user.dir")
